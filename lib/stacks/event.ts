@@ -31,7 +31,7 @@ export class EventStack extends cdk.Stack {
     });
 
     new ssm.StringParameter(this, "AssociationsParam", {
-      parameterName: ssmParameterPath(environment, "sync/associations"),
+      parameterName: ssmParameterPath(environment, "sync/associations", branch),
       stringValue: JSON.stringify([
         {
           name: SAMS.defaultAssociation.name,
@@ -43,7 +43,7 @@ export class EventStack extends cdk.Stack {
     });
 
     new ssm.StringParameter(this, "MatchRefreshPolicyParam", {
-      parameterName: ssmParameterPath(environment, "sync/match-refresh-policy"),
+      parameterName: ssmParameterPath(environment, "sync/match-refresh-policy", branch),
       stringValue: JSON.stringify(DEFAULT_MATCH_REFRESH_POLICY),
       description: "Adaptive match/ranking refresh windows",
     });

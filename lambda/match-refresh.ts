@@ -22,7 +22,11 @@ const eventBridge = new EventBridgeClient({});
 
 const lambdaHandler = async () => {
   const sourceSyncId = randomUUID();
-  const config = await loadProviderRuntimeConfig({ environment: env.CDK_ENVIRONMENT, ssm });
+  const config = await loadProviderRuntimeConfig({
+    environment: env.CDK_ENVIRONMENT,
+    ssmPrefix: env.SSM_PREFIX,
+    ssm,
+  });
   const sams = getSamsClient(config.samsApiKey);
   const publisher = new EventBridgePublisher(eventBridge, env.EVENT_BUS_NAME);
 

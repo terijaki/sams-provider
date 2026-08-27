@@ -62,13 +62,17 @@ export function samsApiKeyParameterPath(): string {
   return `${SSM_ROOT}/sams/api-key`;
 }
 
-export function ssmPrefix(environment: string): string {
-  return `${SSM_ROOT}/${environment}`;
+export function ssmPrefix(environment: string, branch = ""): string {
+  if (environment === "prod" || !branch) {
+    return `${SSM_ROOT}/${environment}`;
+  }
+  return `${SSM_ROOT}/${environment}/${branch}`;
 }
 
 export function ssmParameterPath(
   environment: string,
   key: "sync/associations" | "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy",
+  branch = "",
 ): string {
-  return `${ssmPrefix(environment)}/${key}`;
+  return `${ssmPrefix(environment, branch)}/${key}`;
 }
