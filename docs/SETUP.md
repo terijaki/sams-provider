@@ -101,14 +101,14 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012
 
 ## GitHub CI
 
-| Workflow                | When                                    | What                                                                                                                                                                                                                                                            |
-| ----------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Verify and Deploy`     | Pull request, push, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (app stacks only). **Deploy CDK to AWS:** runs only after Verify passes — dev for feature branches/PRs, prod when a merge lands on `main`. Uses GitHub Environment `dev` or `prod`. Never deploys shared stacks. |
-| `Destroy Branch Stacks` | PR closed or branch deleted             | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                                   |
+| Workflow                | When                                                                 | What                                                                                                                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Verify and Deploy`     | Pull request (feature branches), push to `main`, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (app stacks only). **Deploy CDK to AWS:** runs only after Verify passes — dev on pull requests, prod on push to `main`. Uses GitHub Environment `dev` or `prod`. Never deploys shared stacks. |
+| `Destroy Branch Stacks` | PR closed or branch deleted                                          | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                |
 
 Feature-branch deploys are isolated by branch slug (stacks, DynamoDB, S3, EventBridge, SSM under `/sams-provider/dev/<branch>/sync/...`). The register CLI still writes shared `/sams-provider/{env}/sync/...` paths for operator use on the main dev/prod buses.
 
-Direct pushes to `main` are blocked; prod deploy runs on the `push` event from a merged PR.
+Direct pushes to `main` are blocked; prod deploy runs on the `push` event from a merged PR. Feature branches only trigger via `pull_request` (not `push`) to avoid duplicate workflow runs when both would fire on the same commit.
 
 Require status check **Verify** on `main` before merge.
 

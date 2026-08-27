@@ -3,6 +3,8 @@ name: Verify and Deploy
 on:
   pull_request:
   push:
+    branches:
+      - main
     paths-ignore:
       - "**.md"
       - ".vscode/**"
