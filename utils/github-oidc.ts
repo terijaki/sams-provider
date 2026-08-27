@@ -9,6 +9,8 @@ export const GITHUB = {
   },
   /** Environment-scoped Actions secret holding the IAM role ARN to assume. */
   roleArnVariable: "AWS_ROLE_ARN",
+  /** Default CDK bootstrap qualifier (`cdk bootstrap` without `--qualifier`). */
+  bootstrapQualifier: "hnb659fds",
 } as const;
 
 export type GitHubEnvironmentName = (typeof GITHUB.environments)[keyof typeof GITHUB.environments];
@@ -41,4 +43,18 @@ export function githubActionsOidcTrustSubjects(
     githubActionsOidcSubject(githubEnvironment),
     `repo:${GITHUB_OWNER}@*/${GITHUB_REPO}@*:environment:${githubEnvironment}`,
   ];
+}
+
+/** CDK bootstrap roles that GitHub Actions should assume during deploy (not direct credentials). */
+export function cdkBootstrapRoleArns(account: string, region: string): string[] {
+  const qualifier = GITHUB.bootstrapQualifier;
+  return [
+    `arn:aws:iam::${account}:role/cdk-${qualifier}-deploy-role-${account}-${region}`,
+    `arn:aws:iam::${account}:role/cdk-${qualifier}-file-publishing-role-${account}-${region}`,
+    `arn:aws:iam::${account}:role/cdk-${qualifier}-lookup-role-${account}-${region}`,
+  ];
+}
+
+export function githubActionsCdkRoleArn(account: string): string {
+  return `arn:aws:iam::${account}:role/${GITHUB.oidcRoleName}`;
 }
