@@ -49,10 +49,12 @@ varlock run -- vp run cdk:deploy:shared:prod
 
 This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if you set it), IAM role `GitHubActionsCDKRole`, and the account monthly budget. Trust is locked to the GitHub Environment name:
 
-| AWS account | GitHub Environment | OIDC `sub`                                     |
-| ----------- | ------------------ | ---------------------------------------------- |
-| dev         | `dev`              | `repo:terijaki/sams-provider:environment:dev`  |
-| prod        | `prod`             | `repo:terijaki/sams-provider:environment:prod` |
+| AWS account | GitHub Environment | OIDC `sub` (legacy or immutable)                                                                     |
+| ----------- | ------------------ | ---------------------------------------------------------------------------------------------------- |
+| dev         | `dev`              | `repo:terijaki/sams-provider:environment:dev` or `repo:terijaki@*/sams-provider@*:environment:dev`   |
+| prod        | `prod`             | `repo:terijaki/sams-provider:environment:prod` or `repo:terijaki@*/sams-provider@*:environment:prod` |
+
+New repositories use immutable owner/repo IDs in the `sub` claim. The shared OIDC stack trusts both formats via `StringLike`.
 
 4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
 5. In **each** environment, set the Actions **secret** `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same secret name in both environments; different values.
