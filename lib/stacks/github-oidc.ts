@@ -60,7 +60,7 @@ export class GitHubOidcStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "RoleArn", {
       value: this.role.roleArn,
-      description: `Set GitHub Environment "${githubEnvironment}" variable ${GITHUB.roleArnVariable} to this ARN`,
+      description: `Set GitHub Environment "${githubEnvironment}" secret ${GITHUB.roleArnVariable} to this ARN`,
     });
   }
 }

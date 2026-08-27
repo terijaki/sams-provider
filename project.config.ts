@@ -5,7 +5,7 @@ export const AWS = {
   region: "eu-central-1",
   /**
    * GitHub Actions assumes `GitHubActionsCDKRole` via OIDC; the ARN is stored
-   * per GitHub Environment (`dev` / `prod`) as variable `AWS_ROLE_ARN`.
+   * per GitHub Environment (`dev` / `prod`) as secret `AWS_ROLE_ARN`.
    */
   accounts: {
     dev: "449952321849",
