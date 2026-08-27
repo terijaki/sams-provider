@@ -29,13 +29,13 @@ Repeat once per consumer (each website × each environment). Typical pattern: tw
 
 ### Flags
 
-| Flag            | Required | Default                                                                 | Meaning                                      |
-| --------------- | -------- | ----------------------------------------------------------------------- | -------------------------------------------- |
-| `--club`        | yes      | —                                                                       | Exact SAMS club name, or a 36-character UUID |
-| `--account`     | yes      | —                                                                       | 12-digit **consumer** AWS account ID         |
-| `--environment` | no       | `dev`                                                                   | Provider environment: `dev` or `prod`        |
-| `--consumer-id` | no       | slug of the club + environment (`club-name-dev`)                        | Stable id stored in SSM                      |
-| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events`               | Override if the consumer uses another name   |
+| Flag            | Required | Default                                                   | Meaning                                      |
+| --------------- | -------- | --------------------------------------------------------- | -------------------------------------------- |
+| `--club`        | yes      | —                                                         | Exact SAMS club name, or a 36-character UUID |
+| `--account`     | yes      | —                                                         | 12-digit **consumer** AWS account ID         |
+| `--environment` | no       | `dev`                                                     | Provider environment: `dev` or `prod`        |
+| `--consumer-id` | no       | slug of the club + environment (`club-name-dev`)          | Stable id stored in SSM                      |
+| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Override if the consumer uses another name   |
 
 `--environment` selects which provider SSM prefix and event bus to update (`/sams-provider/dev` vs `/sams-provider/prod`). It is not the consumer’s CDK branch.
 
@@ -63,13 +63,13 @@ Ticker stays app-local. Rankings and match blocks arrive as events; consumers pr
 
 ## Failures
 
-| Symptom                         | Likely cause                                              |
-| ------------------------------- | --------------------------------------------------------- |
-| Club was not found              | Name does not match SAMS; try the UUID                    |
-| Club is ambiguous               | Two SAMS clubs slug to the same name; pass the UUID       |
-| Club UUID was not found         | Wrong UUID or SAMS key/environment                        |
-| Failed to search clubs in SAMS  | API key missing or SAMS unreachable                       |
-| SSM / EventBridge access denied | Wrong AWS profile (must be the provider account)          |
-| Queue never receives events     | Queue missing, wrong account/ARN, or missing SQS policy   |
+| Symptom                         | Likely cause                                            |
+| ------------------------------- | ------------------------------------------------------- |
+| Club was not found              | Name does not match SAMS; try the UUID                  |
+| Club is ambiguous               | Two SAMS clubs slug to the same name; pass the UUID     |
+| Club UUID was not found         | Wrong UUID or SAMS key/environment                      |
+| Failed to search clubs in SAMS  | API key missing or SAMS unreachable                     |
+| SSM / EventBridge access denied | Wrong AWS profile (must be the provider account)        |
+| Queue never receives events     | Queue missing, wrong account/ARN, or missing SQS policy |
 
 Stdout is JSON with the persisted `club` and `consumer` records on success.
