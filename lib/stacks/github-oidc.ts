@@ -9,7 +9,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { GITHUB, githubActionsOidcSubject, parseGitHubEnvironment } from "@utils/github-oidc";
+import { GITHUB, githubActionsOidcTrustSubjects, parseGitHubEnvironment } from "@utils/github-oidc";
 
 const GITHUB_ACTIONS_MANAGED_POLICIES = [
   "AWSCloudFormationFullAccess",
@@ -48,7 +48,10 @@ export class GitHubOidcStack extends cdk.Stack {
       assumedBy: new iam.OpenIdConnectPrincipal(provider, {
         StringEquals: {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": githubActionsOidcSubject(githubEnvironment),
+        },
+        StringLike: {
+          "token.actions.githubusercontent.com:sub":
+            githubActionsOidcTrustSubjects(githubEnvironment),
         },
       }),
       maxSessionDuration: cdk.Duration.hours(1),

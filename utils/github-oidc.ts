@@ -17,10 +17,28 @@ export function parseGitHubEnvironment(value: string | undefined): GitHubEnviron
   return value === GITHUB.environments.prod ? GITHUB.environments.prod : GITHUB.environments.dev;
 }
 
+const [GITHUB_OWNER, GITHUB_REPO] = GITHUB.repository.split("/") as [string, string];
+
 /**
- * GitHub OIDC `sub` claim when a workflow job sets `environment:`.
- * https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+ * Legacy GitHub OIDC `sub` claim when a workflow job sets `environment:`.
+ * https://docs.github.com/en/actions/reference/security/oidc
  */
 export function githubActionsOidcSubject(githubEnvironment: GitHubEnvironmentName): string {
   return `repo:${GITHUB.repository}:environment:${githubEnvironment}`;
+}
+
+/**
+ * IAM `StringLike` patterns for the OIDC `sub` claim.
+ *
+ * New repositories use immutable IDs in `sub`, e.g.
+ * `repo:terijaki@590522/sams-provider@1348108547:environment:prod`.
+ * Trust policies must accept both legacy and immutable formats.
+ */
+export function githubActionsOidcTrustSubjects(
+  githubEnvironment: GitHubEnvironmentName,
+): readonly [string, string] {
+  return [
+    githubActionsOidcSubject(githubEnvironment),
+    `repo:${GITHUB_OWNER}@*/${GITHUB_REPO}@*:environment:${githubEnvironment}`,
+  ];
 }
