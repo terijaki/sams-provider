@@ -2,7 +2,7 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vite-plus/test";
 import { GitHubOidcStack } from "./github-oidc";
-import { GITHUB } from "@utils/github-oidc";
+import { GITHUB, githubActionsOidcTrustSubjects } from "@utils/github-oidc";
 
 describe("GitHubOidcStack", () => {
   it("creates GitHubActionsCDKRole trusted for the GitHub prod environment", () => {
@@ -21,8 +21,9 @@ describe("GitHubOidcStack", () => {
             Condition: {
               StringEquals: {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                "token.actions.githubusercontent.com:sub":
-                  "repo:terijaki/sams-provider:environment:prod",
+              },
+              StringLike: {
+                "token.actions.githubusercontent.com:sub": githubActionsOidcTrustSubjects("prod"),
               },
             },
           }),
