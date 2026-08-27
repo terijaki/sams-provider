@@ -1,0 +1,72 @@
+{
+  "name": "sams-provider",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Event-fed SAMS volleyball data provider",
+  "homepage": "https://github.com/terijaki/sams-provider",
+  "bugs": {
+    "url": "https://github.com/terijaki/sams-provider/issues"
+  },
+  "author": {
+    "name": "Björn Kohnen"
+  },
+  "bin": {
+    "sams-provider": "./scripts/sams-provider.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "vp test",
+    "lint": "vp lint",
+    "check": "vp check --fix",
+    "verify": "vp check --fix && vp test --reporter=minimal",
+    "register": "bun ./scripts/sams-provider.ts register",
+    "cdk:deploy": "cdk deploy --require-approval=never",
+    "cdk:deploy:all": "cdk deploy --all --require-approval=never",
+    "cdk:deploy:prod": "CDK_ENVIRONMENT=prod cdk deploy --all",
+    "cdk:synth:all": "cdk synth --all",
+    "cdk:synth:prod": "CDK_ENVIRONMENT=prod cdk synth --all",
+    "cdk:diff": "cdk diff",
+    "cdk:diff:all": "cdk diff --all",
+    "cdk:diff:prod": "CDK_ENVIRONMENT=prod cdk diff --all",
+    "cdk:destroy": "CDK_DESTROY=true cdk destroy --require-approval=never",
+    "cdk:destroy:all": "CDK_DESTROY=true cdk destroy --all --require-approval=never",
+    "cdk:bootstrap": "cdk bootstrap"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.34.0",
+    "@aws-lambda-powertools/metrics": "^2.34.0",
+    "@aws-lambda-powertools/tracer": "^2.34.0",
+    "@aws-sdk/client-dynamodb": "3.1085.0",
+    "@aws-sdk/client-eventbridge": "3.1085.0",
+    "@aws-sdk/client-s3": "3.1085.0",
+    "@aws-sdk/client-ssm": "3.1085.0",
+    "@aws-sdk/lib-dynamodb": "3.1085.0",
+    "@middy/core": "^7.7.0",
+    "@varlock/aws-secrets-plugin": "^1.2.2",
+    "aws-xray-sdk-core": "^3.12.0",
+    "dayjs": "^1.11.21",
+    "dynamodb-toolbox": "^2.10.0",
+    "sams-rest-v2": "^0.1.9",
+    "varlock": "^1.10.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-lambda": "3.1085.0",
+    "@types/aws-lambda": "^8.10.162",
+    "@types/node": "^25.9.4",
+    "aws-cdk": "^2.1130.0",
+    "aws-cdk-lib": "^2.261.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "bun-types": "1.4.0",
+    "constructs": "^10.6.0",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
+    "vite-plus": "0.2.1"
+  },
+  "engines": {
+    "node": ">=25"
+  },
+  "packageManager": "bun@1.4.0"
+}

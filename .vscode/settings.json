@@ -1,0 +1,45 @@
+{
+  "window.title": "sams-provider - ${activeEditorShort}",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "[json]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.removeUnusedImports": "explicit"
+  },
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": false,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "chat.useNestedAgentsMdFiles": true,
+  "chat.tools.terminal.autoApprove": {
+    "/^(vp (run )?|vpr )(test|check(--fix)?|lint|verify(:all)?|cdk:synth(:all)?)(\\s+[\\w./\\-:*=]+)*(\\s+2>&1)?(\\s*\\|\\s*(head|tail|cat|grep|wc)(\\s+[\\w./\\-*=]+)*)?$/": true,
+    "/^aws dynamodb (scan|query|get-item|describe-table|list-tables) .*$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^aws lambda (list-functions|get-function-configuration) .*$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^aws logs (describe-log-groups) .*$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^aws sts get-caller-identity .*$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^aws ssm (get-parameter|get-parameters|get-parameters-by-path|describe-parameters) .*$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  },
+  "github-actions.workflows.pinned.workflows": [".github/workflows/ci.yml"],
+  "window.autoDetectColorScheme": true,
+  "chat.hookFilesLocations": {
+    ".agents/hooks": true
+  }
+}

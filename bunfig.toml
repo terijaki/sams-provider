@@ -1,0 +1,10 @@
+env = false
+[console]
+depth = 3
+
+[install]
+linker = "hoisted"
+auto = "disable"
+# 1 hour until sams-rest-v2 is old enough for the usual 2-day gate.
+minimumReleaseAge = 3600
+minimumReleaseAgeExcludes = ["bun-types", "sams-rest-v2"]

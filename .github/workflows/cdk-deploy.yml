@@ -1,0 +1,71 @@
+name: CDK Deploy
+concurrency:
+  group: cdk-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - ".vscode/**"
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy CDK Stack
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      vars.AWS_ROLE_ARN_DEV != '' &&
+      vars.AWS_ROLE_ARN_PROD != ''
+    runs-on: ubuntu-latest
+    env:
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && vars.AWS_ROLE_ARN_PROD || vars.AWS_ROLE_ARN_DEV }}
+          aws-region: eu-central-1
+
+      - name: Load environment variables
+        uses: dmno-dev/varlock-action@v1.0.5
+
+      - name: Lint check
+        run: vp lint
+
+      - name: Run tests
+        run: vp test
+
+      - name: CDK Diff
+        run: vp exec cdk diff --all
+
+      - name: CDK Deploy
+        run: vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json
+
+      - name: Add deployment summary
+        run: |
+          echo "## ${{ github.ref == 'refs/heads/main' && '🚀' || '🔧' }} CDK Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY

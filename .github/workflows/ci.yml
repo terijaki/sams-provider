@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - "**.md"
+      - ".vscode/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    env:
+      VARLOCK_ENV: test
+      CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Lint, format, and typecheck
+        run: vp check
+
+      - name: Run tests
+        run: vp test
+
+      - name: CDK synth
+        run: vp exec cdk synth
