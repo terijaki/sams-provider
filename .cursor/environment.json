@@ -1,0 +1,3 @@
+{
+  "install": "curl -fsSL https://vite.plus | bash\nexport PATH=\"$HOME/.vite-plus/bin:$HOME/.local/share/vite-plus/bin:$PATH\"\nvp env use 25 || true\nvp install"
+}
