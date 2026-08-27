@@ -16,7 +16,8 @@ Instructions for AI coding agents working in this repository.
 - **Lint / format / typecheck:** `vp check` / `vp check --fix`
 - **Tests:** `vp test`
 - **Full gate:** `vp run verify`
-- **CDK:** `varlock run -- vp exec cdk synth --all` and `varlock run -- vp exec cdk deploy --all`
+- **CDK:** `varlock run -- vp exec cdk synth` and `varlock run -- vp exec cdk deploy --all`
+- **GitHub OIDC role (once per account, not in `--all`):** `varlock run -- vp run cdk:deploy:github-oidc`
 - **Register a consumer club:** `varlock run -- vp run register -- --club "Club Name" --account 123456789012`
 
 `vpr` is the Varlock-wrapped Vite+ entrypoint when available (`varlock run -- vp ...`). Prefer `vp` over invoking Bun directly.
@@ -33,4 +34,4 @@ Instructions for AI coding agents working in this repository.
 
 ## AWS accounts
 
-Two accounts: **dev** and **prod**. Fill `AWS.accounts` in `project.config.ts` and GitHub Actions variables `AWS_ROLE_ARN_DEV` / `AWS_ROLE_ARN_PROD` once those accounts exist. See `docs/SETUP.md`.
+Two accounts: **dev** and **prod**. Fill `AWS.accounts` in `project.config.ts` once those accounts exist. GitHub Actions uses Environments `dev` / `prod` with the same variable name `AWS_ROLE_ARN`. Deploy `GitHubOidcStack` locally (`cdk:deploy:github-oidc`) — it is not part of `cdk deploy --all`. See `docs/SETUP.md`.

@@ -31,6 +31,13 @@ export type CoercedEnvSchema = {
   CDK_ENVIRONMENT: "dev" | "prod";
   
   /**
+   * **CDK_DEPLOY_GITHUB_OIDC**  
+   * Maintainer-only: synthesize/deploy GitHubOidcStack (never part of cdk deploy --all)  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  CDK_DEPLOY_GITHUB_OIDC?: boolean;
+  
+  /**
    * **CDK_BUDGET_ALERT_EMAIL**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23808080%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%3E%3Cpath%20d%3D%22M17.5%2019.125A9%209%200%201%201%2021%2012c0%205.5-6%205.5-6%202V8%22%2F%3E%3Cpath%20d%3D%22M15%2012v-1.5C15%209.12%2013.657%208%2012%208s-3%201.12-3%202.5V12m6%200v1.5c0%201.38-1.343%202.5-3%202.5s-3-1.12-3-2.5V12%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E)   
    */
@@ -51,11 +58,11 @@ export type CoercedEnvSchema = {
   
 };
 
-type _CoercedEnvSchema_e6231378 = CoercedEnvSchema;
+type _CoercedEnvSchema_63218274 = CoercedEnvSchema;
 
 declare module 'varlock/env' {
-  export interface TypedEnvSchema extends Readonly<_CoercedEnvSchema_e6231378> {}
-  export interface PublicTypedEnvSchema extends Readonly<Pick<_CoercedEnvSchema_e6231378, 'BRANCH_NAME' | 'CDK_ENVIRONMENT' | 'CDK_BUDGET_ALERT_EMAIL' | 'CDK_MONITORING_ALERT_EMAIL'>> {}
+  export interface TypedEnvSchema extends Readonly<_CoercedEnvSchema_63218274> {}
+  export interface PublicTypedEnvSchema extends Readonly<Pick<_CoercedEnvSchema_63218274, 'BRANCH_NAME' | 'CDK_ENVIRONMENT' | 'CDK_DEPLOY_GITHUB_OIDC' | 'CDK_BUDGET_ALERT_EMAIL' | 'CDK_MONITORING_ALERT_EMAIL'>> {}
 }
 
 
@@ -65,17 +72,17 @@ export type EnvSchemaAsStrings = {
       : (CoercedEnvSchema[Property] extends boolean ? ('true' | 'false') : string)
 };
 
-type _EnvSchemaAsStrings_e6231378 = EnvSchemaAsStrings;
+type _EnvSchemaAsStrings_63218274 = EnvSchemaAsStrings;
 declare global {
 
   // add types for global import.meta.env
-  interface ImportMetaEnv extends _EnvSchemaAsStrings_e6231378 {}
+  interface ImportMetaEnv extends _EnvSchemaAsStrings_63218274 {}
   interface ImportMeta {
     readonly env: ImportMetaEnv;
   }
 
   // add types for global process.env
   namespace NodeJS {
-    interface ProcessEnv extends _EnvSchemaAsStrings_e6231378 {}
+    interface ProcessEnv extends _EnvSchemaAsStrings_63218274 {}
   }
 }

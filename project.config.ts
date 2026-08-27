@@ -10,7 +10,8 @@ export const AWS = {
   },
   /**
    * 12-digit account IDs. Leave empty until accounts are created.
-   * GitHub OIDC role ARNs are GitHub Actions repository variables, not source.
+   * GitHub Actions assumes `GitHubActionsCDKRole` via OIDC; the ARN is stored
+   * per GitHub Environment (`dev` / `prod`) as variable `AWS_ROLE_ARN`.
    */
   accounts: {
     dev: "",

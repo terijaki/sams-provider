@@ -19,11 +19,9 @@ permissions:
 jobs:
   deploy:
     name: Deploy CDK Stack
-    if: >-
-      github.actor != 'dependabot[bot]' &&
-      vars.AWS_ROLE_ARN_DEV != '' &&
-      vars.AWS_ROLE_ARN_PROD != ''
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
     env:
       CDK_ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
 
@@ -42,7 +40,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ github.ref == 'refs/heads/main' && vars.AWS_ROLE_ARN_PROD || vars.AWS_ROLE_ARN_DEV }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
       - name: Load environment variables
@@ -66,6 +64,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | ${{ github.ref == 'refs/heads/main' && 'Production' || 'Development' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **GitHub Environment** | \`${{ github.ref_name == 'main' && 'prod' || 'dev' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **CDK_ENVIRONMENT** | \`${{ env.CDK_ENVIRONMENT }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
