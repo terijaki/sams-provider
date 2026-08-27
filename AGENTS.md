@@ -34,4 +34,4 @@ Instructions for AI coding agents working in this repository.
 
 ## AWS accounts
 
-Two accounts: **dev** (`449952321849`) and **prod** (`550271577754`). GitHub Actions uses Environments `dev` / `prod` with the same variable name `AWS_ROLE_ARN`. Deploy shared account stacks locally (`cdk:deploy:shared`) — they are not part of `cdk deploy --all`. See `docs/SETUP.md`.
+Two accounts: **dev** (`449952321849`) and **prod** (`550271577754`). GitHub Actions uses Environments `dev` / `prod` with the same secret name `AWS_ROLE_ARN`. Deploy shared account stacks locally (`cdk:deploy:shared`) — they are not part of `cdk deploy --all`. See `docs/SETUP.md`.

@@ -37,10 +37,19 @@ jobs:
       - name: Install dependencies
         run: vp install
 
+      - name: Require AWS role ARN
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::GitHub Environment secret AWS_ROLE_ARN is missing. Set it on the ${{ github.ref_name == 'main' && 'prod' || 'dev' }} environment."
+            exit 1
+          fi
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
       - name: Load environment variables
@@ -52,7 +61,7 @@ jobs:
       - name: Run tests
         run: vp test
 
-      # App stacks only (CDK_STACK_GROUP=app). Shared OIDC + Budget stay local SSO.
+      # App stacks only (CDK_STACK_GROUP=app). Shared OIDC + Budget stay local.
       - name: CDK Diff
         run: vp exec cdk diff --all
 

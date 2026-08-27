@@ -7,7 +7,7 @@ export const GITHUB = {
     dev: "dev",
     prod: "prod",
   },
-  /** Environment-scoped Actions variable holding the IAM role ARN to assume. */
+  /** Environment-scoped Actions secret holding the IAM role ARN to assume. */
   roleArnVariable: "AWS_ROLE_ARN",
 } as const;
 

@@ -55,7 +55,7 @@ This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if y
 | prod        | `prod`             | `repo:terijaki/sams-provider:environment:prod` |
 
 4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
-5. In **each** environment, set the Actions variable `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same variable name in both environments; different values.
+5. In **each** environment, set the Actions **secret** `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same secret name in both environments; different values.
 6. Create the SecureString in **each** account (same name; account isolation separates them):
 
 ```sh
@@ -101,10 +101,10 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012
 
 ## GitHub CI
 
-| Workflow     | When                           | What                                                                                                                                                      |
-| ------------ | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CI`         | Every pull request and push    | `vp check`, `vp test`, `cdk synth` (app stacks + `CDK_STACK_GROUP=shared`) — required before merge                                                        |
-| `CDK Deploy` | `main` and `workflow_dispatch` | Uses GitHub Environment `prod` (`main`) or `dev` (everything else). Assumes `vars.AWS_ROLE_ARN` from that environment. Does **not** deploy shared stacks. |
+| Workflow     | When                           | What                                                                                                                                                         |
+| ------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CI`         | Every pull request and push    | `vp check`, `vp test`, `cdk synth` (app stacks + `CDK_STACK_GROUP=shared`) — required before merge                                                           |
+| `CDK Deploy` | `main` and `workflow_dispatch` | Uses GitHub Environment `prod` (`main`) or `dev` (everything else). Assumes `secrets.AWS_ROLE_ARN` from that environment. Does **not** deploy shared stacks. |
 
 No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in deploy jobs by Varlock after OIDC.
 
