@@ -3,8 +3,8 @@ import * as events from "aws-cdk-lib/aws-events";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 import { SAMS } from "@project.config";
-import { DEFAULT_MATCH_REFRESH_POLICY, ssmParameterPath } from "../src/config/schema";
-import { computeResourceBranchSuffix } from "./db/env";
+import { DEFAULT_MATCH_REFRESH_POLICY, ssmParameterPath } from "../../src/config/schema";
+import { computeResourceBranchSuffix } from "../db/env";
 
 interface EventStackProps extends cdk.StackProps {
   stackProps?: {

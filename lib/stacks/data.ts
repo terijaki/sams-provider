@@ -1,8 +1,8 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import type { Construct } from "constructs";
-import { computeCacheTableName, computeSamsDataTableName } from "./db/env";
-import { SamsTableIndexes } from "./db/table-indexes";
+import { computeCacheTableName, computeSamsDataTableName } from "../db/env";
+import { SamsTableIndexes } from "../db/table-indexes";
 
 interface DataStackProps extends cdk.StackProps {
   stackProps?: {

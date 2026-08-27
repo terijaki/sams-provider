@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository.
 
 - **SAMS provider:** event-fed volleyball data service. Syncs SAMS, stores a provider-owned read model, and publishes projection events to consumer apps.
 - **No public read API.** Consumers receive SQS events and serve their own local projections.
-- **Infra:** AWS CDK in `lib/` + `bin/cdk.ts`.
+- **Infra:** AWS CDK stacks in `lib/stacks/` + `bin/cdk.ts`. Shared constructs live in `lib/construct/` and `lib/db/`.
 - **Domain:** testable sync/refresh/event code in `src/`.
 - **Lambdas:** thin handlers in `lambda/`.
 
@@ -18,7 +18,7 @@ Instructions for AI coding agents working in this repository.
 - **Full gate:** `vp run verify`
 - **CDK:** `varlock run -- vp exec cdk synth` and `varlock run -- vp exec cdk deploy --all`
 - **GitHub OIDC role (once per account, not in `--all`):** `varlock run -- vp run cdk:deploy:github-oidc`
-- **Register a consumer club:** `varlock run -- vp run register -- --club "Club Name" --account 123456789012`
+- **Register a consumer club:** `varlock run -- vp run register -- --club "Club Name" --account 123456789012` (see `src/cli/README.md`)
 
 `vpr` is the Varlock-wrapped Vite+ entrypoint when available (`varlock run -- vp ...`). Prefer `vp` over invoking Bun directly.
 

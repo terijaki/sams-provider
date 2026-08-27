@@ -5,13 +5,13 @@ import { getSanitizedBranch } from "@utils/deploy-branch";
 import { getCdkNaming } from "@utils/cdk-naming";
 import * as cdk from "aws-cdk-lib";
 import { AWS } from "@/project.config";
-import { BudgetStack } from "../lib/budget-stack";
-import { DataStack } from "../lib/data-stack";
-import { EventStack } from "../lib/event-stack";
-import { GitHubOidcStack } from "../lib/github-oidc-stack";
-import { MediaStack } from "../lib/media-stack";
-import { MonitoringStack } from "../lib/monitoring-stack";
-import { SyncStack } from "../lib/sync-stack";
+import { BudgetStack } from "../lib/stacks/budget";
+import { DataStack } from "../lib/stacks/data";
+import { EventStack } from "../lib/stacks/event";
+import { GitHubOidcStack } from "../lib/stacks/github-oidc";
+import { MediaStack } from "../lib/stacks/media";
+import { MonitoringStack } from "../lib/stacks/monitoring";
+import { SyncStack } from "../lib/stacks/sync";
 
 const app = new cdk.App();
 

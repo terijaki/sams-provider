@@ -68,7 +68,10 @@ aws ssm put-parameter \
   --value "$SAMS_API_KEY"
 ```
 
-Repeat for `/sams-provider/prod/sams/api-key`. 7. Put alert emails in SSM as `/sams-provider/cdk-reporting-email` (or the equivalent Varlock `awsParam` names). 8. Require the GitHub check named **verify** on `main` before merge.
+Repeat for `/sams-provider/prod/sams/api-key`.
+
+7. Put alert emails in SSM as `/sams-provider/cdk-reporting-email` (or the equivalent Varlock `awsParam` names).
+8. Require the GitHub check named **verify** on `main` before merge.
 
 If the OIDC provider already exists in an account (same URL), deploy with:
 
@@ -96,13 +99,11 @@ varlock run -- vp run cdk:deploy:github-oidc:prod  # one-shot identity stack (pr
 
 ## Operator registration
 
-After the first app deploy, register each consumer club (prod and dev accounts):
+After the first app deploy, register each consumer club (prod and dev accounts). Full process: [`src/cli/README.md`](../src/cli/README.md).
 
 ```sh
 varlock run -- vp run register -- --club "Club Name" --account 123456789012
 ```
-
-This resolves the exact SAMS club UUID (fails if unknown or ambiguous), stores it in SSM, and attaches an EventBridge rule to `arn:aws:sqs:eu-central-1:<account>:sams-provider-events`. Consumer apps must create that queue (plus DLQ) and allow the provider event bus to send messages.
 
 ## GitHub CI
 

@@ -7,9 +7,9 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import type { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type { Construct } from "constructs";
-import { ssmPrefix } from "../src/config/schema";
-import { buildLambdaFunctionName, SpNodejsFunction } from "./construct/sp-nodejs-function";
-import { computeResourceBranchSuffix } from "./db/env";
+import { ssmPrefix } from "../../src/config/schema";
+import { buildLambdaFunctionName, SpNodejsFunction } from "../construct/sp-nodejs-function";
+import { computeResourceBranchSuffix } from "../db/env";
 
 interface SyncStackProps extends cdk.StackProps {
   stackProps?: {
@@ -59,7 +59,7 @@ export class SyncStack extends cdk.Stack {
     this.clubsSync = new SpNodejsFunction(this, "ClubsSync", {
       namespace: "sams",
       name: "clubs-sync",
-      entry: path.join(__dirname, "../lambda/clubs-sync.ts"),
+      entry: path.join(__dirname, "../../lambda/clubs-sync.ts"),
       timeout: cdk.Duration.minutes(5),
       environment: commonEnvironment,
     }).lambdaFunction;
@@ -67,7 +67,7 @@ export class SyncStack extends cdk.Stack {
     this.teamsSync = new SpNodejsFunction(this, "TeamsSync", {
       namespace: "sams",
       name: "teams-sync",
-      entry: path.join(__dirname, "../lambda/teams-sync.ts"),
+      entry: path.join(__dirname, "../../lambda/teams-sync.ts"),
       timeout: cdk.Duration.minutes(10),
       environment: commonEnvironment,
     }).lambdaFunction;
@@ -75,7 +75,7 @@ export class SyncStack extends cdk.Stack {
     this.matchRefresh = new SpNodejsFunction(this, "MatchRefresh", {
       namespace: "sams",
       name: "match-refresh",
-      entry: path.join(__dirname, "../lambda/match-refresh.ts"),
+      entry: path.join(__dirname, "../../lambda/match-refresh.ts"),
       timeout: cdk.Duration.minutes(10),
       environment: commonEnvironment,
     }).lambdaFunction;

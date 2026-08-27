@@ -1,7 +1,7 @@
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vite-plus/test";
-import { GitHubOidcStack } from "./github-oidc-stack";
+import { GitHubOidcStack } from "./github-oidc";
 import { GITHUB } from "@utils/github-oidc";
 
 describe("GitHubOidcStack", () => {
