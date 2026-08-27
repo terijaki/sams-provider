@@ -7,11 +7,11 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 ## Prerequisites
 
 - Provider stacks already deployed (`DataStack`, `EventStack`, `SyncStack`, …)
-- AWS credentials for the **provider** account (`sams-provider-dev` or `sams-provider-prod`)
+- AWS credentials for the **provider** account
 - `SAMS_API_KEY` available to the local process (Varlock / `.env.local`)
-- Consumer account already has queue `sams-provider-events` (plus a DLQ) in `eu-central-1`
+- Consumer already deployed queue `sams-provider-events` (plus a DLQ) in `eu-central-1` via **their** CDK
 
-The consumer app must allow the provider event bus to send to that queue (`sqs:SendMessage` from the provider account).
+The consumer queue policy must allow the provider event bus to `sqs:SendMessage`. This CLI does not create queues.
 
 ## Command
 
@@ -50,16 +50,22 @@ Re-running the same club + consumer is idempotent: the club gains the consumer i
 
 CDK does **not** create the clubs/consumers parameters. Registering from the CLI avoids `cdk deploy` overwriting operator-owned subscriptions.
 
-## Consumer side
+## Consumer CDK
 
-Each consumer account needs:
+Queues are **not** created here. Each consumer deploys them in their own stacks:
 
-- Queue name `sams-provider-events` in `eu-central-1` (unless `--queue-arn` is set)
+- Queue name `sams-provider-events` in `eu-central-1` (unless they pass `--queue-arn` at register time)
 - A DLQ
-- Queue policy allowing the provider event bus
-- A processor that consumes the versioned envelopes (`schemaVersion`, `eventId`, `snapshotVersion`) — that code lives in the consumer repos, not here
+- Queue policy allowing `events.amazonaws.com` to send, conditioned on the provider bus:
 
-Ticker stays app-local. Rankings and match blocks arrive as events; consumers project them locally. There is no public read API on this service.
+| Provider env | Event bus ARN                                                      |
+| ------------ | ------------------------------------------------------------------ |
+| dev          | `arn:aws:events:eu-central-1:449952321849:event-bus/sams-provider` |
+| prod         | `arn:aws:events:eu-central-1:550271577754:event-bus/sams-provider` |
+
+Deploy the consumer queue **before** running this CLI. EventBridge `PutTargets` to a cross-account queue fails until that policy exists.
+
+A processor that consumes the versioned envelopes (`schemaVersion`, `eventId`, `snapshotVersion`) also lives in the consumer repos. Ticker stays app-local. There is no public read API on this service.
 
 ## Failures
 
@@ -69,7 +75,7 @@ Ticker stays app-local. Rankings and match blocks arrive as events; consumers pr
 | Club is ambiguous               | Two SAMS clubs slug to the same name; pass the UUID     |
 | Club UUID was not found         | Wrong UUID or SAMS key/environment                      |
 | Failed to search clubs in SAMS  | API key missing or SAMS unreachable                     |
-| SSM / EventBridge access denied | Wrong AWS profile (must be the provider account)        |
+| SSM / EventBridge access denied | Wrong credentials (must be the provider account)        |
 | Queue never receives events     | Queue missing, wrong account/ARN, or missing SQS policy |
 
 Stdout is JSON with the persisted `club` and `consumer` records on success.

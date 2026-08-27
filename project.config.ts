@@ -3,10 +3,6 @@
  */
 export const AWS = {
   region: "eu-central-1",
-  profiles: {
-    dev: "sams-provider-dev",
-    prod: "sams-provider-prod",
-  },
   /**
    * GitHub Actions assumes `GitHubActionsCDKRole` via OIDC; the ARN is stored
    * per GitHub Environment (`dev` / `prod`) as variable `AWS_ROLE_ARN`.

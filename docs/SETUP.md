@@ -24,18 +24,16 @@ Runtime Lambdas do **not** use this file. They read `/sams-provider/sams/api-key
 
 ## AWS accounts
 
-| Profile              | Account ID     | Purpose     |
-| -------------------- | -------------- | ----------- |
-| `sams-provider-dev`  | `449952321849` | Development |
-| `sams-provider-prod` | `550271577754` | Production  |
+| Environment | Account ID     | Purpose     |
+| ----------- | -------------- | ----------- |
+| dev         | `449952321849` | Development |
+| prod        | `550271577754` | Production  |
 
 Account IDs also live in `project.config.ts` (`AWS.accounts`).
 
-SSO profiles (`sams-provider-dev` / `sams-provider-prod`) should use the same SSO session as the other AWS accounts.
-
 ## After the accounts exist
 
-Do this **locally with SSO** in each account. GitHub Actions cannot create its own role.
+Do this **locally** in each account. GitHub Actions cannot create its own role.
 
 1. Put the 12-digit IDs in `project.config.ts`.
 2. Bootstrap CDK in both accounts (`eu-central-1`).
@@ -95,7 +93,7 @@ varlock run -- vp run cdk:deploy:shared:prod  # OIDC + budget (prod account)
 
 ## Operator registration
 
-After the first app deploy, register each consumer club (prod and dev accounts). Full process: [`src/cli/README.md`](../src/cli/README.md).
+Consumers create their SQS queues in **their** CDK. After those queues exist, register each club against this provider (prod and dev). Full process: [`src/cli/README.md`](../src/cli/README.md).
 
 ```sh
 varlock run -- vp run register -- --club "Club Name" --account 123456789012
@@ -112,7 +110,6 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 ## Tickets left for a later session
 
-- Redeploy **app** stacks so Lambdas read `/sams-provider/sams/api-key`
-- EventBridge → consumer SQS end-to-end
-- Consumer app processors (separate repositories)
+- EventBridge → consumer SQS end-to-end (consumer queues belong in the consumer CDK)
+- Consumer event processors (separate repositories; no issues filed yet)
 - Require GitHub check **verify** on `main`
