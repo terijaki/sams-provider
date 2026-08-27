@@ -7,7 +7,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import type { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type { Construct } from "constructs";
-import { ssmPrefix } from "../../src/config/schema";
+import { samsApiKeyParameterPath, ssmPrefix } from "../../src/config/schema";
 import { buildLambdaFunctionName, SpNodejsFunction } from "../construct/sp-nodejs-function";
 import { computeResourceBranchSuffix } from "../db/env";
 
@@ -87,7 +87,10 @@ export class SyncStack extends cdk.Stack {
       fn.addToRolePolicy(
         new iam.PolicyStatement({
           actions: ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"],
-          resources: [`arn:aws:ssm:${this.region}:${this.account}:parameter${prefix}/*`],
+          resources: [
+            `arn:aws:ssm:${this.region}:${this.account}:parameter${prefix}/*`,
+            `arn:aws:ssm:${this.region}:${this.account}:parameter${samsApiKeyParameterPath()}`,
+          ],
         }),
       );
     }

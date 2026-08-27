@@ -20,7 +20,7 @@ CDK_ALERT_EMAIL="you@example.com"
 SAMS_API_KEY=""
 ```
 
-Runtime Lambdas do **not** use this file. They read `/sams-provider/{env}/sams/api-key` from SSM Parameter Store (SecureString).
+Runtime Lambdas do **not** use this file. They read `/sams-provider/sams/api-key` from SSM Parameter Store (SecureString) — same path as Varlock, one parameter per AWS account.
 
 ## AWS accounts
 
@@ -56,18 +56,16 @@ This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if y
 | dev         | `dev`              | `repo:terijaki/sams-provider:environment:dev`  |
 | prod        | `prod`             | `repo:terijaki/sams-provider:environment:prod` |
 
-4. Create GitHub Environments **`dev`** and **`prod`**. On `prod`, restrict deployment branches to `main`.
+4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
 5. In **each** environment, set the Actions variable `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same variable name in both environments; different values.
-6. Create the SecureString:
+6. Create the SecureString in **each** account (same name; account isolation separates them):
 
 ```sh
 aws ssm put-parameter \
-  --name /sams-provider/dev/sams/api-key \
+  --name /sams-provider/sams/api-key \
   --type SecureString \
   --value "$SAMS_API_KEY"
 ```
-
-Repeat for `/sams-provider/prod/sams/api-key`.
 
 7. Require the GitHub check named **verify** on `main` before merge.
 
@@ -114,7 +112,7 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 ## Tickets left for a later session
 
-- Paste `RoleArn` into GitHub Environment variables `AWS_ROLE_ARN` (`dev` / `prod`)
-- SSM API key + first `cdk deploy` to dev
+- Redeploy **app** stacks so Lambdas read `/sams-provider/sams/api-key`
 - EventBridge → consumer SQS end-to-end
 - Consumer app processors (separate repositories)
+- Require GitHub check **verify** on `main`

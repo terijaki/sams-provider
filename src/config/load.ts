@@ -7,6 +7,7 @@ import {
   DEFAULT_MATCH_REFRESH_POLICY,
   matchRefreshPolicySchema,
   providerRuntimeConfigSchema,
+  samsApiKeyParameterPath,
   ssmParameterPath,
   type ProviderRuntimeConfig,
 } from "./schema";
@@ -25,7 +26,7 @@ export async function loadProviderRuntimeConfig(args: {
   }
 
   const [apiKey, associationsRaw, clubsRaw, consumersRaw, policyRaw] = await Promise.all([
-    getParameter(args.ssm, ssmParameterPath(args.environment, "sams/api-key"), true),
+    getParameter(args.ssm, samsApiKeyParameterPath(), true),
     getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/associations")),
     getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/clubs")),
     getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/consumers")),

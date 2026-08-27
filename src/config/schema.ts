@@ -55,18 +55,20 @@ export const DEFAULT_MATCH_REFRESH_POLICY: MatchRefreshPolicy = matchRefreshPoli
   pollMinutes: {},
 });
 
+export const SSM_ROOT = "/sams-provider";
+
+/** Account-scoped SAMS key. Same path in every account; isolation is the account. */
+export function samsApiKeyParameterPath(): string {
+  return `${SSM_ROOT}/sams/api-key`;
+}
+
 export function ssmPrefix(environment: string): string {
-  return `/sams-provider/${environment}`;
+  return `${SSM_ROOT}/${environment}`;
 }
 
 export function ssmParameterPath(
   environment: string,
-  key:
-    | "sams/api-key"
-    | "sync/associations"
-    | "sync/clubs"
-    | "sync/consumers"
-    | "sync/match-refresh-policy",
+  key: "sync/associations" | "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy",
 ): string {
   return `${ssmPrefix(environment)}/${key}`;
 }

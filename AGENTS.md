@@ -29,7 +29,7 @@ Instructions for AI coding agents working in this repository.
 - Dates: `dayjs`.
 - Prefer `for...of` over `.forEach`.
 - Never cast as `unknown` or `any`.
-- Secrets: Varlock only. Runtime Lambdas read SSM; do not bake the SAMS API key into Lambda environment variables.
+- Secrets: Varlock only. Runtime Lambdas read `/sams-provider/sams/api-key` from SSM; do not bake the key into Lambda environment variables.
 - Do not mention other club apps in code or comments.
 
 ## AWS accounts
