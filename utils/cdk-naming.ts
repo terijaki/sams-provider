@@ -41,3 +41,11 @@ export function getCdkNaming(isProd: boolean, branch: string) {
     envLabel: `dev${devBranchSuffix}` as `dev-${string}`,
   };
 }
+
+/** Account-scoped stack names (`GitHubOidcStack-Dev`, `BudgetStack-Prod`). No branch suffix. */
+export function sharedAccountStackName<T extends string>(
+  isProd: boolean,
+  base: T,
+): `${T}-Prod` | `${T}-Dev` {
+  return (isProd ? `${base}-Prod` : `${base}-Dev`) as `${T}-Prod` | `${T}-Dev`;
+}

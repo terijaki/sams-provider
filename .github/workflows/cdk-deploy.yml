@@ -52,6 +52,7 @@ jobs:
       - name: Run tests
         run: vp test
 
+      # App stacks only (CDK_STACK_GROUP=app). Shared OIDC + Budget stay local SSO.
       - name: CDK Diff
         run: vp exec cdk diff --all
 

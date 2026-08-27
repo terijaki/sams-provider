@@ -1,3 +1,10 @@
+/**
+ * Account-scoped monthly cost budget (singleton per AWS account).
+ *
+ * Deploy with `cdk:deploy:shared` (`CDK_STACK_GROUP=shared`) together with
+ * GitHubOidcStack. Budget names are account-global, so this is not part of
+ * default `cdk deploy --all`.
+ */
 import * as cdk from "aws-cdk-lib";
 import * as budgets from "aws-cdk-lib/aws-budgets";
 import type { Construct } from "constructs";

@@ -1,6 +1,5 @@
 /**
- * Non-secret project configuration. AWS account IDs stay empty until the
- * provider accounts exist — fill them in before the first real deploy.
+ * Non-secret project configuration.
  */
 export const AWS = {
   region: "eu-central-1",
@@ -9,13 +8,12 @@ export const AWS = {
     prod: "sams-provider-prod",
   },
   /**
-   * 12-digit account IDs. Leave empty until accounts are created.
    * GitHub Actions assumes `GitHubActionsCDKRole` via OIDC; the ARN is stored
    * per GitHub Environment (`dev` / `prod`) as variable `AWS_ROLE_ARN`.
    */
   accounts: {
-    dev: "",
-    prod: "",
+    dev: "449952321849",
+    prod: "550271577754",
   },
 } as const;
 

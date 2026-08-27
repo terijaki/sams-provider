@@ -1,9 +1,10 @@
 /**
  * Account-scoped GitHub Actions OIDC identity (singleton per AWS account).
  *
- * Deploy manually with `cdk:deploy:github-oidc`, never via `cdk deploy --all`
- * or GitHub Actions. The role must already exist before Actions can assume it,
- * so the first deploy is local (SSO) into each account.
+ * Deploy with `cdk:deploy:shared` (`CDK_STACK_GROUP=shared`) together with
+ * BudgetStack. Never via default `cdk deploy --all` or GitHub Actions.
+ * The role must already exist before Actions can assume it, so the first
+ * deploy is local (SSO) into each account.
  */
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";

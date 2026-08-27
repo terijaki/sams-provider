@@ -1,8 +1,8 @@
 import "varlock/auto-load";
 import { ENV } from "varlock/env";
-import { shouldDeployAccountOpsStacks } from "@utils/cdk-deploy";
+import { shouldDeployMonitoringStack } from "@utils/cdk-deploy";
 import { getSanitizedBranch } from "@utils/deploy-branch";
-import { getCdkNaming } from "@utils/cdk-naming";
+import { getCdkNaming, sharedAccountStackName } from "@utils/cdk-naming";
 import * as cdk from "aws-cdk-lib";
 import { AWS } from "@/project.config";
 import { BudgetStack } from "../lib/stacks/budget";
@@ -18,9 +18,11 @@ const app = new cdk.App();
 const environment = ENV.CDK_ENVIRONMENT || "dev";
 const isProd = environment === "prod";
 const branch = getSanitizedBranch();
-const deployGithubOidc = process.env.CDK_DEPLOY_GITHUB_OIDC === "true";
-const deployAccountOpsStacks = shouldDeployAccountOpsStacks({ isProd, branch });
+const stackGroup = ENV.CDK_STACK_GROUP || "app";
+const isShared = stackGroup === "shared";
+const deployMonitoring = shouldDeployMonitoringStack({ isProd, branch });
 const accountId = isProd ? AWS.accounts.prod : AWS.accounts.dev;
+const alertEmail = ENV.CDK_ALERT_EMAIL;
 
 const commonStackProps = {
   env: {
@@ -31,6 +33,7 @@ const commonStackProps = {
     Environment: environment,
     ManagedBy: "AWS CDK",
     Branch: branch || "main",
+    StackGroup: stackGroup,
   },
   stackProps: {
     environment,
@@ -38,14 +41,25 @@ const commonStackProps = {
   },
 };
 
-if (deployGithubOidc) {
-  const oidcStackName = isProd ? "GitHubOidcStack-Prod" : "GitHubOidcStack-Dev";
-  new GitHubOidcStack(app, oidcStackName, {
+if (isShared) {
+  new GitHubOidcStack(app, sharedAccountStackName(isProd, "GitHubOidcStack"), {
     ...commonStackProps,
     description: `GitHub Actions OIDC role (${environment})`,
     stackProps: { environment },
     terminationProtection: true,
   });
+
+  if (alertEmail) {
+    new BudgetStack(app, sharedAccountStackName(isProd, "BudgetStack"), {
+      ...commonStackProps,
+      description: `Account cost budget (${environment})`,
+      alertEmail,
+      terminationProtection: true,
+    });
+  } else if (isProd) {
+    console.error("CDK_ALERT_EMAIL is required for production");
+    process.exit(1);
+  }
 } else {
   const { stackName, envLabel } = getCdkNaming(isProd, branch);
 
@@ -74,30 +88,16 @@ if (deployGithubOidc) {
     eventBusName: eventStack.eventBusName,
   });
 
-  const budgetEmail = ENV.CDK_BUDGET_ALERT_EMAIL;
-  const monitoringEmail = ENV.CDK_MONITORING_ALERT_EMAIL || budgetEmail;
-
-  if (deployAccountOpsStacks) {
-    if (budgetEmail) {
-      new BudgetStack(app, stackName("BudgetStack"), {
-        ...commonStackProps,
-        description: `Cost budget (${envLabel})`,
-        alertEmail: budgetEmail,
-      });
-    } else if (isProd) {
-      console.error("CDK_BUDGET_ALERT_EMAIL is required for production");
-      process.exit(1);
-    }
-
-    if (monitoringEmail) {
+  if (deployMonitoring) {
+    if (alertEmail) {
       new MonitoringStack(app, stackName("MonitoringStack"), {
         ...commonStackProps,
         description: `Monitoring (${envLabel})`,
-        alertEmail: monitoringEmail,
+        alertEmail,
         syncLambdas: [syncStack.clubsSync, syncStack.teamsSync, syncStack.matchRefresh],
       });
     } else if (isProd) {
-      console.error("CDK_MONITORING_ALERT_EMAIL is required for production");
+      console.error("CDK_ALERT_EMAIL is required for production");
       process.exit(1);
     }
   }

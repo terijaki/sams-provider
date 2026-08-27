@@ -1,7 +1,8 @@
 CDK lives here: stacks in `lib/stacks/`, shared constructs in `lib/construct/`, DynamoDB helpers in `lib/db/`.
 
-Stack CloudFormation names: prod `Foo-Prod`, shared dev `Foo-Dev-main`, feature `Foo-Dev-<branch>`.
+Two synth groups (`CDK_STACK_GROUP`):
 
-`GitHubOidcStack` is account-scoped (`GitHubOidcStack-Dev` / `GitHubOidcStack-Prod`), termination-protected, and only instantiated when `CDK_DEPLOY_GITHUB_OIDC=true`. Never include it in `cdk deploy --all`.
+- **`app` (default):** Data, Media, Event, Sync, and Monitoring (prod / shared-dev only). CloudFormation names: prod `Foo-Prod`, shared-dev `Foo-Dev-main`, feature `Foo-Dev-<branch>`.
+- **`shared`:** account singletons `GitHubOidcStack` and `BudgetStack` (`Foo-Dev` / `Foo-Prod`, no branch). Termination-protected. Deploy with `cdk:deploy:shared`. Never include them in default `cdk deploy --all`.
 
 Do not inject `SAMS_API_KEY` into Lambda environment variables. Grant `ssm:GetParameter` on `/sams-provider/{env}/*` instead.

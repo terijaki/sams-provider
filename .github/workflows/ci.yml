@@ -39,7 +39,7 @@ jobs:
       - name: CDK synth
         run: vp exec cdk synth
 
-      - name: CDK synth GitHub OIDC stack
+      - name: CDK synth shared stacks
         env:
-          CDK_DEPLOY_GITHUB_OIDC: "true"
+          CDK_STACK_GROUP: shared
         run: vp exec cdk synth
