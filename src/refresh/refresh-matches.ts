@@ -9,6 +9,7 @@ import {
   type PlannedMatch,
 } from "../refresh/planner";
 import { buildLeagueRankingProjection } from "../projections/league-ranking";
+import { buildMatchBlockProjection } from "../projections/match-block";
 import { unwrapSamsResult } from "../sams/result";
 import type { SamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
@@ -56,7 +57,7 @@ export async function refreshMatchesAndRankings(args: {
     if (!block) {
       continue;
     }
-    const matches = [];
+    const rawMatches = [];
     for (const matchUuid of block.matchUuids) {
       const { data, error } = unwrapSamsResult(
         await args.sams.getLeagueMatchByUuid({ path: { uuid: matchUuid } }),
@@ -84,9 +85,15 @@ export async function refreshMatchesAndRankings(args: {
         rawJson: JSON.stringify(data),
         ttl: unixTtlFromNow(30),
       });
-      matches.push(data);
+      rawMatches.push(data);
       await sleep(200);
     }
+
+    const matches = await buildMatchBlockProjection({
+      matches: rawMatches,
+      repos: args.repos,
+      publicLogoBaseUrl: args.publicLogoBaseUrl,
+    });
 
     const cachedAt = new Date().toISOString();
     events.push(
@@ -112,7 +119,7 @@ export async function refreshMatchesAndRankings(args: {
         path: { uuid: block.leagueUuid },
         query: { page: 0, size: 100 },
       });
-      const seasonUuid = matches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
+      const seasonUuid = rawMatches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
       const entries = await buildLeagueRankingProjection({
         entries: rankingData?.content ?? [],
         repos: args.repos,
