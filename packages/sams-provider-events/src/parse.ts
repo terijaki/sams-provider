@@ -45,12 +45,3 @@ export function tryParseSamsEventFromSqsBody(body: string): SamsEvent | null {
     return null;
   }
 }
-
-/** @deprecated Use {@link parseSamsEvent}. */
-export const parseProjectionEvent = parseSamsEvent;
-
-/** @deprecated Use {@link parseSamsEventFromSqsBody}. */
-export const parseProjectionEventFromSqsBody = parseSamsEventFromSqsBody;
-
-/** @deprecated Use {@link tryParseSamsEventFromSqsBody}. */
-export const tryParseProjectionEventFromSqsBody = tryParseSamsEventFromSqsBody;

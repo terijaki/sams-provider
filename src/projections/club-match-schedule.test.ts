@@ -7,7 +7,7 @@ import {
   isClubScheduleWindow,
   selectStoredClubScheduleMatches,
 } from "./club-match-schedule";
-import { EventType } from "../events/schemas";
+import { SamsEventType } from "../events/schemas";
 
 const now = new Date("2026-09-01T12:00:00.000Z");
 
@@ -174,8 +174,8 @@ describe("club-match-schedule projection", () => {
 
     expect(events).toHaveLength(1);
     const event = events[0];
-    expect(event?.type).toBe(EventType.clubMatchScheduleUpdated);
-    if (!event || event.type !== EventType.clubMatchScheduleUpdated) {
+    expect(event?.type).toBe(SamsEventType.clubMatchScheduleUpdated);
+    if (!event || event.type !== SamsEventType.clubMatchScheduleUpdated) {
       throw new Error("expected club match schedule event");
     }
     expect(event.payload.club).toMatchObject({

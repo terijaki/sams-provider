@@ -332,12 +332,3 @@ export type SamsEventPayloadByType = {
 
 /** Extract the payload type for a given event type string. */
 export type SamsEventPayload<TType extends SamsEventTypeName> = SamsEventPayloadByType[TType];
-
-/** @deprecated Use {@link SamsEvent}. */
-export type EventEnvelope = SamsEvent;
-
-/** @deprecated Use {@link SamsEventPayloadByType}. */
-export type ProjectionEventPayloadByType = SamsEventPayloadByType;
-
-/** @deprecated Use {@link SamsEventPayload}. */
-export type ProjectionEventPayload<TType extends SamsEventTypeName> = SamsEventPayload<TType>;

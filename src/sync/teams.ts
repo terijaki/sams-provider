@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { SamsClient } from "sams-rest-v2";
 import type { ClubSubscription } from "../config/schema";
 import type { DomainEventPublisher } from "../events/publisher";
-import { createEventEnvelope, EventType, snapshotVersion } from "../events/schemas";
+import { createEventEnvelope, SamsEventType, snapshotVersion } from "../events/schemas";
 import { publicLogoUrl } from "../logos/preserve";
 import { buildClubSeasonTeamsProjection } from "../projections/club-season-teams";
 import { unwrapSamsResult } from "../sams/result";
@@ -229,7 +229,7 @@ export async function syncTeams(args: {
 
   const events = [
     createEventEnvelope({
-      type: EventType.teamsSyncCompleted,
+      type: SamsEventType.teamsSyncCompleted,
       sourceSyncId: args.sourceSyncId,
       payload: {
         seasonUuid: currentSeason.uuid,
@@ -245,7 +245,7 @@ export async function syncTeams(args: {
     const teams = await args.repos.teams.listBySportsclub(club.sportsclubUuid);
     events.push(
       createEventEnvelope({
-        type: EventType.clubSeasonTeamsUpdated,
+        type: SamsEventType.clubSeasonTeamsUpdated,
         sourceSyncId: args.sourceSyncId,
         payload: buildClubSeasonTeamsProjection({
           club: {

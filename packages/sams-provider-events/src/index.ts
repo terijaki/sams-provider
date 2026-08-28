@@ -1,9 +1,7 @@
 export {
   EVENT_SCHEMA_VERSION,
   EVENT_SOURCE,
-  EventType,
   SamsEventType,
-  type EventTypeName,
   type SamsEventTypeName,
 } from "./constants";
 
@@ -27,14 +25,7 @@ export {
   teamsSyncCompletedPayloadSchema,
 } from "./schemas";
 
-export {
-  parseProjectionEvent,
-  parseProjectionEventFromSqsBody,
-  parseSamsEvent,
-  parseSamsEventFromSqsBody,
-  tryParseProjectionEventFromSqsBody,
-  tryParseSamsEventFromSqsBody,
-} from "./parse";
+export { parseSamsEvent, parseSamsEventFromSqsBody, tryParseSamsEventFromSqsBody } from "./parse";
 
 export type {
   Club,
@@ -45,7 +36,6 @@ export type {
   ClubUpdatedEvent,
   ClubsSyncCompleted,
   ClubsSyncCompletedEvent,
-  EventEnvelope,
   LeagueRankingEntry,
   LeagueRankingUpdate,
   LeagueRankingUpdatedEvent,

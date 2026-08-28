@@ -1,5 +1,5 @@
 import type { DomainEventPublisher } from "../events/publisher";
-import { createEventEnvelope, EventType, snapshotVersion } from "../events/schemas";
+import { createEventEnvelope, SamsEventType, snapshotVersion } from "../events/schemas";
 import { SAMS_ENTITY_TTL_DAYS } from "../config/constants";
 import { logoObjectKey, publicLogoUrl, resolveClubLogo } from "../logos/preserve";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
@@ -220,7 +220,7 @@ export async function syncAssociationClubs(args: {
         changedRegisteredClubUuids.push(club.uuid);
         events.push(
           createEventEnvelope({
-            type: EventType.clubUpdated,
+            type: SamsEventType.clubUpdated,
             sourceSyncId: args.sourceSyncId,
             payload: {
               uuid: item.sportsclubUuid,

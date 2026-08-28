@@ -4,9 +4,7 @@ import { EVENT_SCHEMA_VERSION, EVENT_SOURCE, SAMS_EVENT_TYPE_VALUES } from "./co
 export {
   EVENT_SCHEMA_VERSION,
   EVENT_SOURCE,
-  EventType,
   SamsEventType,
-  type EventTypeName,
   type SamsEventTypeName,
 } from "./constants";
 

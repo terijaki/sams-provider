@@ -33,12 +33,6 @@ export const SamsEventType = {
 
 export type SamsEventTypeName = (typeof SamsEventType)[keyof typeof SamsEventType];
 
-/** @deprecated Use {@link SamsEventType}. Kept for provider internals. */
-export const EventType = SamsEventType;
-
-/** @deprecated Use {@link SamsEventTypeName}. */
-export type EventTypeName = SamsEventTypeName;
-
 export const SAMS_EVENT_TYPE_VALUES = [
   SamsEventType.clubsSyncCompleted,
   SamsEventType.clubUpdated,
