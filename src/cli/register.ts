@@ -17,7 +17,7 @@ import {
   type ClubSubscription,
   type ConsumerConfig,
 } from "../config/schema";
-import { EventType } from "../events/schemas";
+import { SamsEventType } from "../events/schemas";
 
 export const REGISTER_USAGE =
   'Usage: sams-provider register --club "Club Name" --account 123456789012';
@@ -261,7 +261,7 @@ async function upsertEventBridgeTargets(args: {
         State: "ENABLED",
         EventPattern: JSON.stringify({
           source: ["sams-provider"],
-          "detail-type": Object.values(EventType),
+          "detail-type": Object.values(SamsEventType),
         }),
       }),
     );

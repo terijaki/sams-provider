@@ -1,13 +1,13 @@
-import type { EventEnvelope } from "./schemas";
+import type { SamsEvent } from "./schemas";
 
 export interface DomainEventPublisher {
-  publish(events: EventEnvelope[]): Promise<void>;
+  publish(events: SamsEvent[]): Promise<void>;
 }
 
 export class InMemoryEventPublisher implements DomainEventPublisher {
-  readonly published: EventEnvelope[] = [];
+  readonly published: SamsEvent[] = [];
 
-  async publish(events: EventEnvelope[]): Promise<void> {
+  async publish(events: SamsEvent[]): Promise<void> {
     this.published.push(...events);
   }
 }

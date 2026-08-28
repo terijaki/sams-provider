@@ -41,6 +41,9 @@ jobs:
       - name: Run tests
         run: vp test
 
+      - name: Pack events package
+        run: cd packages/sams-provider-events && vp pack
+
       - name: CDK synth app stacks
         run: vp exec cdk synth
 

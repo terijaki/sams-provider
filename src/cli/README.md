@@ -60,7 +60,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 2. **DynamoDB** provider data table — refreshes the club stub TTL and association fields from the index.
 3. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 4. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
-5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in `src/events/schemas.ts`.
+5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in the `sams-provider-events` package (`SamsEventType`).
 
 Re-running the same club + consumer is idempotent: the club gains the consumer id if missing, the consumer record is replaced, and the EventBridge rule/target is upserted.
 
