@@ -10,13 +10,13 @@ Provider-owned read model and event-fed projections for volleyball data from SAM
 The upstream volleyball information system (REST API) this provider syncs from. It covers many associations, not one federation.
 _Avoid_: SBVV, Südbadischer Volleyball-Verband, "the association"
 
-**Association**:
-A regional volleyball federation in SAMS. Germany has many; a club belongs to one.
-_Avoid_: SAMS, league, Verband as a synonym for the API
+**SAMS host**:
+The HTTP origin of the SAMS instance this provider calls. Today that is volleyball-baden.de. The host is how we reach SAMS, not a choice of association.
+_Avoid_: SBVV, default association, Baden as a synonym for SAMS
 
-**SBVV**:
-Südbadischer Volleyball-Verband. One association among others, and the default association this provider uses for club-name lookup today.
-_Avoid_: SAMS
+**Association**:
+A regional volleyball federation in SAMS. Germany has many; a club belongs to one. This provider has no default association.
+_Avoid_: SAMS, SAMS host, league
 
 **Club**:
 A sports club in SAMS, identified by UUID. SAMS list endpoints often call this a sportsclub.
@@ -57,8 +57,8 @@ A club enrolled so teams, matches, and rankings are in scope, and to which consu
 _Avoid_: target club, default club, consumer
 
 **Association-wide club sync**:
-Storing every club in a configured association, not only registered clubs.
-_Avoid_: syncing SAMS (the API), treating SBVV as the only association in SAMS
+Storing every club in each association the provider is configured to sync, not only registered clubs. The SAMS host does not pick those associations.
+_Avoid_: syncing SAMS, SBVV-only, default association
 
 **Logo preservation**:
 Keep the stored club logo when a paginated SAMS list omits it.

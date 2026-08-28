@@ -55,7 +55,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 
 ## What it writes
 
-1. **Resolves the club** against SAMS (default association SBVV). Name lookup is case-insensitive via slug. It fails if the name is unknown or matches more than one club — pass the UUID in that case.
+1. **Resolves the club** against SAMS by UUID, or by name (case-insensitive slug). It fails if the name is unknown or matches more than one club — pass the UUID in that case. The SAMS host is not an association filter; do not assume SBVV.
 2. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 3. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
 4. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in `src/events/schemas.ts`.

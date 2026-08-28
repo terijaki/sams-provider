@@ -1,6 +1,6 @@
 # SAMS provider
 
-Event-fed volleyball data from [SAMS](https://www.volleyball-baden.de). This service syncs clubs, teams, matches, and rankings, then delivers **app-oriented events to an SQS queue in your AWS account**.
+Event-fed volleyball data from SAMS. This service syncs clubs, teams, matches, and rankings, then delivers **app-oriented events to an SQS queue in your AWS account**.
 
 There is **no public read API** and no proxy you can query. Your website (or other app) keeps its own local copy of the data and updates it from those events.
 
