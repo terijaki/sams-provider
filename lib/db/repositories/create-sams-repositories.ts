@@ -1,4 +1,5 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { SamsAssociationsRepository } from "./sams-associations-repository";
 import { SamsClubsRepository } from "./sams-clubs-repository";
 import { SamsLeaguesRepository } from "./sams-leagues-repository";
 import { SamsMatchesRepository } from "./sams-matches-repository";
@@ -9,6 +10,7 @@ import { SamsTeamsRepository } from "./sams-teams-repository";
 
 export function createSamsRepositories(documentClient: DynamoDBDocumentClient, tableName: string) {
   return {
+    associations: new SamsAssociationsRepository(documentClient, tableName),
     clubs: new SamsClubsRepository(documentClient, tableName),
     teams: new SamsTeamsRepository(documentClient, tableName),
     rosters: new SamsRostersRepository(documentClient, tableName),

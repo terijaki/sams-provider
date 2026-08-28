@@ -2,6 +2,13 @@
 
 Provider-owned read model and event-fed projections for volleyball data from SAMS. Consumers receive events; there is no public read API.
 
+## Runtime (clubs index)
+
+- Associations and clubs are discovered from the configured SAMS host (`getAssociations`, `getAllSportsclubs`) and cached in DynamoDB (730-day TTL).
+- Weekly clubs sync: coordinator refreshes associations, then async-invokes one worker per association.
+- `clubUpdated` events are emitted only for registered clubs when projection data changes; index-only clubs stay silent on the bus.
+- Register CLI resolves clubs from the DynamoDB index only (no live SAMS calls).
+
 ## Language
 
 ### Upstream
@@ -15,8 +22,8 @@ The HTTP origin of the SAMS instance this provider calls. Today that is volleyba
 _Avoid_: SBVV, default association, Baden as a synonym for SAMS
 
 **Association**:
-A regional volleyball federation in SAMS. Germany has many; a club belongs to one. Configured via SSM `sync/associations`; not hard-coded to one federation in the product model.
-_Avoid_: SAMS, SAMS host, league
+A regional volleyball federation in SAMS. Germany has many; a club belongs to one. Discovered from the SAMS host and cached in the provider data table.
+_Avoid_: SAMS, SAMS host, league, SSM association list
 
 **Club**:
 A sports club in SAMS, identified by UUID. SAMS list endpoints often call this a sportsclub.
@@ -57,11 +64,11 @@ A club enrolled so teams, matches, and rankings are in scope, and to which consu
 _Avoid_: target club, default club, consumer
 
 **Association-wide club sync**:
-Storing every club in each association the provider is configured to sync, not only registered clubs. The SAMS host does not pick those associations.
-_Avoid_: syncing SAMS, SBVV-only, default association
+Storing every club for each association returned by the SAMS host, not only registered clubs. Associations are discovered from SAMS and cached in DynamoDB.
+_Avoid_: syncing SAMS, SBVV-only, default association, SSM association config
 
 **Logo preservation**:
-Keep the stored club logo when a paginated SAMS list omits it. Mirrored objects use `sams-logos/{sportsclubUuid}.{ext}` only.
+Keep the stored club logo when a paginated SAMS list omits it. Logos are fetched on first index and when club metadata changes. Mirrored objects use `sams-logos/{sportsclubUuid}.{ext}` only.
 _Avoid_: replacing logos from list responses, slug-based logo keys
 
 **Outbound projection**:
