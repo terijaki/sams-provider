@@ -4,6 +4,67 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Public consumers request event delivery with the **Register as a consumer** template; everything else uses **General issue**. Consumer migration work stays in the consumer app repositories and remains blocked until provider events are stable.
 
+## Parent PRD
+
+| Issue                                                    | Title                               |
+| -------------------------------------------------------- | ----------------------------------- |
+| [#1](https://github.com/terijaki/sams-provider/issues/1) | PRD: SAMS provider (event-fed sync) |
+
+## Provider milestones
+
+| Issue                                                      | Title                                                               | Status |
+| ---------------------------------------------------------- | ------------------------------------------------------------------- | ------ |
+| [#10](https://github.com/terijaki/sams-provider/issues/10) | Goal: register first consumer and verify EventBridge → SQS delivery | Open   |
+
+## Projections (sub-issues of #1)
+
+| Issue                                                      | Projection / event                                            | Status             |
+| ---------------------------------------------------------- | ------------------------------------------------------------- | ------------------ |
+| [#12](https://github.com/terijaki/sams-provider/issues/12) | `club-match-schedule`                                         | Not implemented    |
+| [#13](https://github.com/terijaki/sams-provider/issues/13) | Normalize `league-ranking` (sportsclub UUID + logo per entry) | Partial (raw SAMS) |
+| [#14](https://github.com/terijaki/sams-provider/issues/14) | Normalize `match-block` payload                               | Partial (raw SAMS) |
+
+Implemented today: `club` (`sams.club.updated`), `club-season-teams` (`sams.club-season-teams.updated`).
+
+## Multi-association
+
+| Issue                                                      | Title                                                        | Blocks   |
+| ---------------------------------------------------------- | ------------------------------------------------------------ | -------- |
+| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) | #13, #14 |
+
+SAMS host (`volleyball-baden.de`) ≠ association. Club index for all configured associations is required before ranking logo enrichment works for opponent teams.
+
+## Implementation order (handoff)
+
+1. **[#16](https://github.com/terijaki/sams-provider/issues/16)** — multi-association sync + register
+2. **[#13](https://github.com/terijaki/sams-provider/issues/13)** — league-ranking: team + `sportsclubUuid` + `logoUrl` per row (enrich from provider store; SAMS ranking API has no logos)
+3. **[#14](https://github.com/terijaki/sams-provider/issues/14)** — normalize `match-block` payload (shared match DTO)
+4. **[#12](https://github.com/terijaki/sams-provider/issues/12)** — `club-match-schedule` (reuse match DTO from #14)
+5. **[#10](https://github.com/terijaki/sams-provider/issues/10)** — first consumer registration (parallel when consumer SQS exists)
+
+GitHub dependencies: #13 → blocked by #16; #14 → blocked by #16; #12 → blocked by #14.
+
+## Out of PRD v1 scope
+
+| Issue                                                      | Title                                  |
+| ---------------------------------------------------------- | -------------------------------------- |
+| [#11](https://github.com/terijaki/sams-provider/issues/11) | Investigate live ticker centralization |
+
+## Consumer repos (not tracked here)
+
+- [terijaki/vcmuellheim#382](https://github.com/terijaki/vcmuellheim/issues/382)
+- [terijaki/markgraefler-volleys#64](https://github.com/terijaki/markgraefler-volleys/issues/64)
+
+## Remaining provider gaps (not yet filed)
+
+Consider separate issues when tackling:
+
+- Publish `sams.sync.completed` / `sams.sync.failed` (status subscription)
+- Enforce adaptive refresh intervals (cache table cursors)
+- Subscription-aware EventBridge rules (`consumer.subscriptions`)
+- Observability metrics and PRD alarm set
+- Daily match schedule reconciliation job
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.

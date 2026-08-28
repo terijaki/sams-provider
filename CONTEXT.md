@@ -15,7 +15,7 @@ The HTTP origin of the SAMS instance this provider calls. Today that is volleyba
 _Avoid_: SBVV, default association, Baden as a synonym for SAMS
 
 **Association**:
-A regional volleyball federation in SAMS. Germany has many; a club belongs to one. This provider has no default association.
+A regional volleyball federation in SAMS. Germany has many; a club belongs to one. Configured via SSM `sync/associations`; not hard-coded to one federation in the product model.
 _Avoid_: SAMS, SAMS host, league
 
 **Club**:
@@ -39,7 +39,7 @@ A scheduled or completed game between two teams.
 _Avoid_: ticker
 
 **Ticker**:
-Live play-by-play for a match. It stays in the consumer in v1; the provider does not publish it.
+Live play-by-play for a match. It stays in the consumer in v1; the provider does not publish it ([#11](https://github.com/terijaki/sams-provider/issues/11)).
 _Avoid_: match event, ticker event, provider ticker
 
 ### This provider
@@ -61,11 +61,11 @@ Storing every club in each association the provider is configured to sync, not o
 _Avoid_: syncing SAMS, SBVV-only, default association
 
 **Logo preservation**:
-Keep the stored club logo when a paginated SAMS list omits it.
-_Avoid_: replacing logos from list responses
+Keep the stored club logo when a paginated SAMS list omits it. Mirrored objects use `sams-logos/{sportsclubUuid}.{ext}` only.
+_Avoid_: replacing logos from list responses, slug-based logo keys
 
 **Outbound projection**:
-A provider-shaped data product for consumers (club, club-season-teams, match-block, league ranking). Not a raw SAMS entity.
+A provider-shaped data product for consumers (club, club-season-teams, match-block, league ranking). Not a raw SAMS entity. League ranking rows include sportsclub UUID and resolved `logoUrl` ([#13](https://github.com/terijaki/sams-provider/issues/13)).
 _Avoid_: DynamoDB item, SAMS payload
 
 **Projection event**:
@@ -83,3 +83,7 @@ _Avoid_: match day, round, fixed poll window
 **Adaptive match refresh**:
 Refreshing match blocks (and related rankings) by schedule and match state, not on a fixed interval.
 _Avoid_: 5-minute cache, cron poll
+
+## Issue tracking
+
+Provider milestones and projection work: [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md). Parent PRD: [#1](https://github.com/terijaki/sams-provider/issues/1).
