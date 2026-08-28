@@ -18,11 +18,12 @@
       "@lambda/*": ["./lambda/*"],
       "@utils/*": ["./utils/*"],
       "@src/*": ["./src/*"],
-      "@project.config": ["./project.config.ts"]
+      "@project.config": ["./project.config.ts"],
+      "sams-provider-events": ["./packages/sams-provider-events/src/index.ts"]
     },
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
   "include": ["**/*.ts", ".agents/**/*.ts"],
-  "exclude": ["node_modules", "cdk.out"]
+  "exclude": ["node_modules", "cdk.out", "packages/sams-provider-events/dist"]
 }

@@ -18,6 +18,7 @@
         "aws-xray-sdk-core": "^3.12.0",
         "dayjs": "^1.11.21",
         "dynamodb-toolbox": "^2.10.0",
+        "sams-provider-events": "workspace:*",
         "sams-rest-v2": "^0.1.9",
         "varlock": "^1.10.0",
         "zod": "^4.4.3",
@@ -37,6 +38,25 @@
         "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
         "vite-plus": "0.2.1",
       },
+    },
+    "packages/sams-provider-events": {
+      "name": "sams-provider-events",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/node": "^25.9.4",
+        "typescript": "^6.0.3",
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
+        "vite-plus": "0.2.1",
+      },
+      "peerDependencies": {
+        "typescript": ">=5.5 || >=6.0.0",
+      },
+      "optionalPeers": [
+        "typescript",
+      ],
     },
   },
   "packages": {
@@ -521,6 +541,8 @@
     "react-is": ["react-is@17.0.2", "", {}, "sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w=="],
 
     "rolldown": ["rolldown@1.2.6", "", { "dependencies": { "@oxc-project/types": "=0.147.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm-eabi": "1.2.6", "@rolldown/binding-android-arm64": "1.2.6", "@rolldown/binding-darwin-arm64": "1.2.6", "@rolldown/binding-darwin-x64": "1.2.6", "@rolldown/binding-freebsd-x64": "1.2.6", "@rolldown/binding-linux-arm-gnueabihf": "1.2.6", "@rolldown/binding-linux-arm64-gnu": "1.2.6", "@rolldown/binding-linux-arm64-musl": "1.2.6", "@rolldown/binding-linux-ppc64-gnu": "1.2.6", "@rolldown/binding-linux-s390x-gnu": "1.2.6", "@rolldown/binding-linux-x64-gnu": "1.2.6", "@rolldown/binding-linux-x64-musl": "1.2.6", "@rolldown/binding-openharmony-arm64": "1.2.6", "@rolldown/binding-win32-arm64-msvc": "1.2.6", "@rolldown/binding-win32-x64-msvc": "1.2.6" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-vMM4q3aixf46GiF1Kok8jDPFsEpXgFWGjUHXNkNHNm+Y2adXAG2dbX91jkti3i0ZRsOlcmbuzAz1poObSHCmUA=="],
+
+    "sams-provider-events": ["sams-provider-events@workspace:packages/sams-provider-events"],
 
     "sams-rest-v2": ["sams-rest-v2@0.1.9", "", { "dependencies": { "zod": "^4.4.3" }, "peerDependencies": { "typescript": ">=5.5 || >=6.0.0" }, "optionalPeers": ["typescript"] }, "sha512-tI0tijAFR4F9Nob5spjox9fS09Eg//hnTMpj9sEqWSQDe1KP4YZr0mGb6tUfJl96/Q57cOaavu0u1yZ0qishew=="],
 
