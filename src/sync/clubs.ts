@@ -1,6 +1,7 @@
 import type { DomainEventPublisher } from "../events/publisher";
 import { createEventEnvelope, EventType, snapshotVersion } from "../events/schemas";
 import { logoObjectKey, publicLogoUrl, resolveClubLogo } from "../logos/preserve";
+import { resolveAssociationUuid } from "../sams/resolve-association";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
 import { slugify } from "@utils/slugify";
 import type { AssociationConfig } from "../config/schema";
@@ -71,6 +72,12 @@ export type ClubsSyncRepos = {
   };
 };
 
+export type SyncClubsResult = {
+  clubsCount: number;
+  changedClubUuids: string[];
+  associationUuids: string[];
+};
+
 export async function syncClubs(args: {
   sams: ClubsSyncSams;
   repos: ClubsSyncRepos;
@@ -80,15 +87,12 @@ export async function syncClubs(args: {
   uploadLogo: LogoUploader;
   sourceSyncId: string;
   sleep?: (ms: number) => Promise<void>;
-}): Promise<{ clubsCount: number; changedClubUuids: string[]; associationUuid: string }> {
-  const sleep = args.sleep ?? defaultSleep;
+}): Promise<SyncClubsResult> {
   const startedAt = Date.now();
-  const association = args.associations[0];
-  if (!association) {
+  if (args.associations.length === 0) {
     throw new Error("No associations configured for clubs sync");
   }
 
-  const associationUuid = await resolveAssociationUuid(args.sams, association);
   const existingClubs = await args.repos.clubs.listAll();
   const existingLogoMap = new Map(
     existingClubs.map((club) => [
@@ -97,11 +101,60 @@ export async function syncClubs(args: {
     ]),
   );
 
+  let clubsCount = 0;
+  const changedClubUuids: string[] = [];
+  const associationUuids: string[] = [];
+  const events: ReturnType<typeof createEventEnvelope>[] = [];
+
+  for (const association of args.associations) {
+    const associationResult = await syncClubsForAssociation({
+      ...args,
+      association,
+      existingClubs,
+      existingLogoMap,
+    });
+    clubsCount += associationResult.clubsCount;
+    changedClubUuids.push(...associationResult.changedClubUuids);
+    associationUuids.push(associationResult.associationUuid);
+    events.push(...associationResult.events);
+  }
+
+  await args.publisher.publish(events);
+  await args.repos.syncMeta.put({
+    job: "clubs",
+    status: "success",
+    durationMs: Date.now() - startedAt,
+    itemCount: clubsCount,
+  });
+
+  return { clubsCount, changedClubUuids, associationUuids };
+}
+
+async function syncClubsForAssociation(args: {
+  sams: ClubsSyncSams;
+  repos: ClubsSyncRepos;
+  association: AssociationConfig;
+  existingClubs: ClubListItem[];
+  existingLogoMap: Map<string, { logoImageLink?: string; logoS3Key?: string }>;
+  publicLogoBaseUrl: string;
+  uploadLogo: LogoUploader;
+  sourceSyncId: string;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<{
+  clubsCount: number;
+  changedClubUuids: string[];
+  associationUuid: string;
+  events: ReturnType<typeof createEventEnvelope>[];
+}> {
+  const sleep = args.sleep ?? defaultSleep;
+  const associationUuid = await resolveAssociationUuid(args.sams, args.association);
+
   let currentPage = 0;
   let hasMorePages = true;
   let clubsCount = 0;
   const changedClubUuids: string[] = [];
   const upsertedByUuid = new Map<string, ClubUpsertItem>();
+  const events: ReturnType<typeof createEventEnvelope>[] = [];
 
   while (hasMorePages) {
     const { data, error, response } = await args.sams.getAllSportsclubs({
@@ -116,7 +169,7 @@ export async function syncClubs(args: {
       if (!club.uuid || !club.name) {
         continue;
       }
-      const existing = existingLogoMap.get(club.uuid);
+      const existing = args.existingLogoMap.get(club.uuid);
       const resolved = resolveClubLogo({
         incomingLogoUrl: club.logoImageLink,
         existing,
@@ -136,7 +189,7 @@ export async function syncClubs(args: {
         name: club.name,
         nameSlug: slugify(club.name),
         ...(club.associationUuid ? { associationUuid: club.associationUuid } : { associationUuid }),
-        associationName: association.name,
+        associationName: args.association.name,
         ...(resolved.logoImageLink ? { logoImageLink: resolved.logoImageLink } : {}),
         ...(logoS3Key ? { logoS3Key } : {}),
         ttl: unixTtlFromNow(30),
@@ -144,7 +197,7 @@ export async function syncClubs(args: {
       pageItems.push(item);
       upsertedByUuid.set(club.uuid, item);
 
-      const previous = existingClubs.find((row) => row.sportsclubUuid === club.uuid);
+      const previous = args.existingClubs.find((row) => row.sportsclubUuid === club.uuid);
       const nextHash = snapshotVersion({
         name: item.name,
         logoS3Key: item.logoS3Key,
@@ -174,18 +227,18 @@ export async function syncClubs(args: {
     }
   }
 
-  const events = [
+  events.push(
     createEventEnvelope({
       type: EventType.clubsSyncCompleted,
       sourceSyncId: args.sourceSyncId,
       payload: {
         associationUuid,
-        associationName: association.name,
+        associationName: args.association.name,
         clubsCount,
         changedClubUuids,
       },
     }),
-  ];
+  );
 
   for (const uuid of changedClubUuids) {
     const club = upsertedByUuid.get(uuid);
@@ -212,15 +265,7 @@ export async function syncClubs(args: {
     );
   }
 
-  await args.publisher.publish(events);
-  await args.repos.syncMeta.put({
-    job: "clubs",
-    status: "success",
-    durationMs: Date.now() - startedAt,
-    itemCount: clubsCount,
-  });
-
-  return { clubsCount, changedClubUuids, associationUuid };
+  return { clubsCount, changedClubUuids, associationUuid, events };
 }
 
 export async function fetchLogoAndKey(args: {
@@ -246,36 +291,6 @@ export async function fetchLogoAndKey(args: {
   } catch {
     return undefined;
   }
-}
-
-async function resolveAssociationUuid(
-  sams: ClubsSyncSams,
-  association: AssociationConfig,
-): Promise<string> {
-  let currentPage = 0;
-  let hasMorePages = true;
-  while (hasMorePages) {
-    const { data, error } = await sams.getAssociations({
-      query: { page: currentPage, size: 100 },
-    });
-    if (error) {
-      throw new Error(`Failed to fetch associations page ${currentPage}`);
-    }
-    const match = data?.content?.find((item) => item.name === association.name);
-    if (match?.uuid) {
-      return match.uuid;
-    }
-    currentPage += 1;
-    hasMorePages = data?.last !== true;
-  }
-
-  if (association.uuid) {
-    const { data, error } = await sams.getAssociationByUuid({ path: { uuid: association.uuid } });
-    if (!error && data?.name === association.name && data.uuid) {
-      return data.uuid;
-    }
-  }
-  throw new Error(`Association "${association.name}" not found`);
 }
 
 function defaultSleep(ms: number): Promise<void> {

@@ -6,6 +6,7 @@ import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { SSMClient } from "@aws-sdk/client-ssm";
 import middy from "@middy/core";
 import { loadProviderRuntimeConfig } from "@src/config/load";
+import { buildSyncAssociations } from "@src/config/associations";
 import { EventBridgePublisher } from "@src/events/eventbridge-publisher";
 import { fetchLogoAndKey, syncClubs } from "@src/sync/clubs";
 import { getSamsClient } from "@utils/sams-client";
@@ -31,13 +32,15 @@ const lambdaHandler = async () => {
   });
   const sams = getSamsClient(config.samsApiKey);
   const publisher = new EventBridgePublisher(eventBridge, env.EVENT_BUS_NAME);
+  const storedClubs = await repos.clubs.listAll();
+  const associations = buildSyncAssociations(config.associations, config.clubs, storedClubs);
 
   try {
     const result = await syncClubs({
       sams,
       repos,
       publisher,
-      associations: config.associations,
+      associations,
       publicLogoBaseUrl: env.LOGO_PUBLIC_BASE_URL,
       sourceSyncId,
       uploadLogo: async ({ sportsclubUuid, logoUrl }) => {

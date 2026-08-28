@@ -4,6 +4,7 @@ import {
   parseRegisterArgs,
   parseRegisterEnvironment,
   REGISTER_USAGE,
+  resolveClub,
 } from "./register";
 
 describe("parseRegisterEnvironment", () => {
@@ -43,6 +44,8 @@ describe("parseRegisterArgs", () => {
       consumerId: undefined,
       queueArn: undefined,
       environment: "prod",
+      association: undefined,
+      tableName: undefined,
     });
   });
 
@@ -59,6 +62,10 @@ describe("parseRegisterArgs", () => {
         "example-club-dev",
         "--queue-arn",
         "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
+        "--association",
+        "Other Association",
+        "--table-name",
+        "custom-table",
       ]),
     ).toEqual({
       club: "Example Club",
@@ -66,6 +73,104 @@ describe("parseRegisterArgs", () => {
       consumerId: "example-club-dev",
       queueArn: "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
       environment: "dev",
+      association: "Other Association",
+      tableName: "custom-table",
     });
+  });
+});
+
+describe("resolveClub", () => {
+  const associations = [
+    { name: "SBVV", uuid: "assoc-1", shortName: "SBVV" },
+    { name: "Other Association", uuid: "assoc-2" },
+  ];
+
+  it("searches across all configured associations for a name match", async () => {
+    const sams = {
+      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
+      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
+        data: {
+          uuid: path.uuid,
+          name: path.uuid === "assoc-1" ? "SBVV" : "Other Association",
+        },
+        error: undefined,
+      }),
+      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
+      getAllSportsclubs: async ({
+        query,
+      }: {
+        query: { association: string; page: number; size: number };
+      }) => ({
+        data: {
+          content:
+            query.association === "assoc-2"
+              ? [{ uuid: "club-2", name: "Other Club", associationUuid: "assoc-2" }]
+              : [],
+          last: true,
+        },
+        error: undefined,
+      }),
+    };
+
+    const club = await resolveClub(sams, "Other Club", associations);
+    expect(club).toEqual({
+      uuid: "club-2",
+      name: "Other Club",
+      associationUuid: "assoc-2",
+      associationName: "Other Association",
+    });
+  });
+
+  it("narrows search with --association", async () => {
+    const sams = {
+      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
+      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
+        data: { uuid: path.uuid, name: "SBVV" },
+        error: undefined,
+      }),
+      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
+      getAllSportsclubs: async ({
+        query,
+      }: {
+        query: { association: string; page: number; size: number };
+      }) => ({
+        data: {
+          content:
+            query.association === "assoc-1"
+              ? [{ uuid: "club-1", name: "Shared Name", associationUuid: "assoc-1" }]
+              : [],
+          last: true,
+        },
+        error: undefined,
+      }),
+    };
+
+    const club = await resolveClub(sams, "Shared Name", associations, "SBVV");
+    expect(club.uuid).toBe("club-1");
+  });
+
+  it("reports ambiguity across associations", async () => {
+    const sams = {
+      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
+      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
+        data: {
+          uuid: path.uuid,
+          name: path.uuid === "assoc-1" ? "SBVV" : "Other Association",
+        },
+        error: undefined,
+      }),
+      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
+      getAllSportsclubs: async () => ({
+        data: {
+          content: [{ uuid: "club-x", name: "Shared Name", associationUuid: "assoc-1" }],
+          last: true,
+        },
+        error: undefined,
+      }),
+    };
+
+    await expect(resolveClub(sams, "Shared Name", associations)).rejects.toThrow(
+      'Club "Shared Name" is ambiguous',
+    );
   });
 });

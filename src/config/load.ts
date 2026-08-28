@@ -1,5 +1,4 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
-import { SAMS } from "@project.config";
 import {
   associationConfigSchema,
   clubSubscriptionSchema,
@@ -45,13 +44,8 @@ export async function loadProviderRuntimeConfig(args: {
 
   const value = providerRuntimeConfigSchema.parse({
     samsApiKey: apiKey,
-    associations: parseJsonArray(associationsRaw, associationConfigSchema, [
-      {
-        name: SAMS.defaultAssociation.name,
-        shortName: SAMS.defaultAssociation.shortName,
-        uuid: SAMS.defaultAssociation.uuid,
-      },
-    ]),
+    // CDK seeds sync/associations in SSM; do not silently default to SBVV at runtime.
+    associations: parseJsonArray(associationsRaw, associationConfigSchema, []),
     clubs: parseJsonArray(clubsRaw, clubSubscriptionSchema, []),
     consumers: parseJsonArray(consumersRaw, consumerConfigSchema, []),
     matchRefreshPolicy: policyRaw
