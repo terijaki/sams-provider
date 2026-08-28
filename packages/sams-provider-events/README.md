@@ -1,8 +1,6 @@
 # sams-provider-events
 
-TypeScript types, Zod schemas, and SQS parsing helpers for [SAMS provider](https://github.com/terijaki/sams-provider) projection events.
-
-Install this package in your consumer app to get editor hover docs, runtime validation, and typed event handling for messages delivered to your SQS queue.
+TypeScript types, Zod schemas, and optional SQS parsers for [SAMS provider](https://github.com/terijaki/sams-provider) events delivered to consumer queues.
 
 ## Install
 
@@ -14,57 +12,66 @@ npm install sams-provider-events
 
 Requires Node.js **25+** (or a recent Bun release).
 
-## Quick start
+## What is in the package
+
+| Export                                                          | Needs Zod at runtime? | Purpose                                      |
+| --------------------------------------------------------------- | --------------------- | -------------------------------------------- |
+| **Types** (`Club`, `Match`, `SamsEvent`, …)                     | No                    | Editor hovers and compile-time safety        |
+| **Constants** (`SamsEventType`, `EVENT_SOURCE`)                 | No                    | Documented event type strings                |
+| **Zod schemas** (`clubProjectionSchema`, …)                     | Yes                   | Optional runtime validation                  |
+| **Parsers** (`parseSamsEventFromSqsBody`)                       | Yes                   | Optional SQS/EventBridge helpers             |
+| **Provider helpers** (`createEventEnvelope`, `snapshotVersion`) | Yes                   | Used by the provider; optional for consumers |
+
+Types are **hand-written** and kept in sync with Zod schemas by contract tests. Import only types/constants if you do not want Zod in your runtime bundle — your bundler can tree-shake unused schema/parser code when you import type-only symbols.
+
+## Quick start (types only)
 
 ```ts
 import {
-  ProjectionEventType,
-  parseProjectionEventFromSqsBody,
+  SamsEventType,
   type ClubSeasonTeamsUpdatedEvent,
-  type TypedProjectionEvent,
+  type SamsEvent,
 } from "sams-provider-events";
 
-export function handleSqsRecord(body: string): void {
-  const event = parseProjectionEventFromSqsBody(body);
-
-  switch (event.type) {
-    case ProjectionEventType.clubSeasonTeamsUpdated: {
-      const typed = event as ClubSeasonTeamsUpdatedEvent;
-      upsertTeams(typed.payload.club.uuid, typed.payload.teams);
-      break;
-    }
-    case ProjectionEventType.clubUpdated:
-      upsertClub(event.payload);
-      break;
-    default:
-      break;
+export function handleEvent(event: SamsEvent): void {
+  if (event.type === SamsEventType.clubSeasonTeamsUpdated) {
+    const typed: ClubSeasonTeamsUpdatedEvent = event;
+    saveTeams(typed.payload.club.uuid, typed.payload.teams);
   }
 }
 ```
 
-## What you get
+## Quick start (with Zod parsing)
 
-- **Friendly type names** such as `Club`, `Team`, `Match`, `ClubSeasonTeams`, and `LeagueRankingUpdate`
-- **JSDoc on exports** so hover text in VS Code explains each event and field group
-- **Zod schemas** for runtime validation (`clubProjectionSchema`, `eventEnvelopeSchema`, …)
-- **`ProjectionEventType`** constants with documentation instead of raw string literals
-- **`TypedProjectionEvent`** discriminated union for narrowing on `type`
-- **SQS helpers** — `parseProjectionEventFromSqsBody` unwraps the EventBridge message body
+```ts
+import { parseSamsEventFromSqsBody, SamsEventType } from "sams-provider-events";
+
+export function handleSqsRecord(body: string): void {
+  const event = parseSamsEventFromSqsBody(body);
+  if (event.type === SamsEventType.clubUpdated) {
+    saveClub(event.payload);
+  }
+}
+```
 
 ## Event reference
 
-Human-readable event documentation lives in the provider repo: [docs/consumers/events.md](https://github.com/terijaki/sams-provider/blob/main/docs/consumers/events.md).
-
-Machine-readable contract: the Zod schemas exported from this package (kept in sync with the provider).
+Human-readable documentation: [docs/consumers/events.md](https://github.com/terijaki/sams-provider/blob/main/docs/consumers/events.md).
 
 ## Idempotency
 
-Every envelope includes `snapshotVersion`, a hash of the payload. Skip writes when the version is unchanged for the same projection key.
-
-## Out of scope
-
-This package does not include SAMS REST access (use [`sams-rest-v2`](https://www.npmjs.com/package/sams-rest-v2)), queue setup, or provider registration. See the provider [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).
+Every envelope includes `snapshotVersion`, a hash of the payload. Skip writes when the version is unchanged for the same logical key.
 
 ## Publishing
 
-Maintainers build with `vp pack` from this directory. CI publishes to npm on merge to `main` when the package version changes.
+Maintainers bump `package.json` automatically on PRs that change the contract (`src/types.ts`, `src/schemas.ts`, or `src/constants.ts`). npm publish runs on merge to `main` only when the package version is newer than the version on npm.
+
+Build locally with:
+
+```bash
+cd packages/sams-provider-events && vp pack
+```
+
+## Out of scope
+
+SAMS REST access (`sams-rest-v2`), queue setup, and provider registration. See the provider [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).

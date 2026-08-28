@@ -1,11 +1,10 @@
 {
   "name": "sams-provider-events",
   "version": "0.1.0",
-  "description": "Types, Zod schemas, and helpers for SAMS provider projection events delivered to consumer SQS queues.",
+  "description": "Types, Zod schemas, and constants for SAMS provider events delivered to consumer SQS queues.",
   "keywords": [
     "SAMS",
     "events",
-    "projections",
     "sqs",
     "volleyball"
   ],

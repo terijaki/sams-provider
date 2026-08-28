@@ -1,49 +1,33 @@
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
+import {
+  EVENT_SCHEMA_VERSION,
+  EVENT_SOURCE,
+  SamsEventType,
+  SAMS_EVENT_TYPE_VALUES,
+  type SamsEventTypeName,
+} from "./constants";
+import type { SamsEvent } from "./types";
 
-export const EVENT_SCHEMA_VERSION = "1.0.0" as const;
-export const EVENT_SOURCE = "sams-provider" as const;
-
-export const EventType = {
-  clubsSyncCompleted: "sams.clubs.sync.completed",
-  clubUpdated: "sams.club.updated",
-  teamsSyncCompleted: "sams.teams.sync.completed",
-  clubSeasonTeamsUpdated: "sams.club-season-teams.updated",
-  clubMatchScheduleUpdated: "sams.club-match-schedule.updated",
-  matchBlockUpdated: "sams.match-block.updated",
-  matchesUpdated: "sams.matches.updated",
-  leagueRankingUpdated: "sams.league-ranking.updated",
-  syncCompleted: "sams.sync.completed",
-  syncFailed: "sams.sync.failed",
-} as const;
-
-export type EventTypeName = (typeof EventType)[keyof typeof EventType];
-
-const EVENT_TYPE_VALUES = [
-  EventType.clubsSyncCompleted,
-  EventType.clubUpdated,
-  EventType.teamsSyncCompleted,
-  EventType.clubSeasonTeamsUpdated,
-  EventType.clubMatchScheduleUpdated,
-  EventType.matchBlockUpdated,
-  EventType.matchesUpdated,
-  EventType.leagueRankingUpdated,
-  EventType.syncCompleted,
-  EventType.syncFailed,
-] as const;
+export {
+  EVENT_SCHEMA_VERSION,
+  EVENT_SOURCE,
+  EventType,
+  SamsEventType,
+  type EventTypeName,
+  type SamsEventTypeName,
+} from "./constants";
 
 export const eventEnvelopeSchema = z.object({
   schemaVersion: z.literal(EVENT_SCHEMA_VERSION),
   eventId: z.string().min(1),
   occurredAt: z.iso.datetime(),
   source: z.literal(EVENT_SOURCE),
-  type: z.enum(EVENT_TYPE_VALUES),
+  type: z.enum(SAMS_EVENT_TYPE_VALUES),
   sourceSyncId: z.string().min(1),
   snapshotVersion: z.string().min(1),
   payload: z.record(z.string(), z.unknown()),
 });
-
-export type EventEnvelope = z.infer<typeof eventEnvelopeSchema>;
 
 export const clubProjectionSchema = z.object({
   uuid: z.string().min(1),
@@ -194,41 +178,149 @@ export const syncFailedPayloadSchema = z.object({
   message: z.string().min(1),
 });
 
-const PAYLOAD_SCHEMAS = {
-  [EventType.clubsSyncCompleted]: clubsSyncCompletedPayloadSchema,
-  [EventType.clubUpdated]: clubProjectionSchema,
-  [EventType.teamsSyncCompleted]: teamsSyncCompletedPayloadSchema,
-  [EventType.clubSeasonTeamsUpdated]: clubSeasonTeamsPayloadSchema,
-  [EventType.clubMatchScheduleUpdated]: clubMatchSchedulePayloadSchema,
-  [EventType.matchBlockUpdated]: matchBlockUpdatedPayloadSchema,
-  [EventType.matchesUpdated]: matchBlockUpdatedPayloadSchema,
-  [EventType.leagueRankingUpdated]: leagueRankingUpdatedPayloadSchema,
-  [EventType.syncCompleted]: z.object({ job: z.string().min(1) }),
-  [EventType.syncFailed]: syncFailedPayloadSchema,
-} as const;
+const syncCompletedPayloadSchema = z.object({ job: z.string().min(1) });
 
 export function snapshotVersion(value: unknown): string {
   return createHash("sha256").update(stableStringify(value)).digest("hex").slice(0, 16);
 }
 
-export function createEventEnvelope<TType extends EventTypeName>(args: {
-  type: TType;
+function buildSamsEvent(args: {
+  type: SamsEventTypeName;
+  payload: unknown;
+  sourceSyncId: string;
+  occurredAt: string;
+  eventId: string;
+  snapshotVersion?: string;
+}): SamsEvent {
+  const envelopeBase = {
+    schemaVersion: EVENT_SCHEMA_VERSION,
+    eventId: args.eventId,
+    occurredAt: args.occurredAt,
+    source: EVENT_SOURCE,
+    sourceSyncId: args.sourceSyncId,
+  };
+
+  switch (args.type) {
+    case SamsEventType.clubUpdated: {
+      const payload = clubProjectionSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.clubUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.clubSeasonTeamsUpdated: {
+      const payload = clubSeasonTeamsPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.clubSeasonTeamsUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.clubMatchScheduleUpdated: {
+      const payload = clubMatchSchedulePayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.clubMatchScheduleUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.matchBlockUpdated: {
+      const payload = matchBlockUpdatedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.matchBlockUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.matchesUpdated: {
+      const payload = matchBlockUpdatedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.matchesUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.leagueRankingUpdated: {
+      const payload = leagueRankingUpdatedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.leagueRankingUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.clubsSyncCompleted: {
+      const payload = clubsSyncCompletedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.clubsSyncCompleted,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.teamsSyncCompleted: {
+      const payload = teamsSyncCompletedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.teamsSyncCompleted,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.syncCompleted: {
+      const payload = syncCompletedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.syncCompleted,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.syncFailed: {
+      const payload = syncFailedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.syncFailed,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+  }
+}
+
+export function createEventEnvelope(args: {
+  type: SamsEventTypeName;
   payload: unknown;
   sourceSyncId: string;
   occurredAt?: string;
   eventId?: string;
-}): EventEnvelope {
-  const payloadSchema = PAYLOAD_SCHEMAS[args.type];
-  const payload = payloadSchema.parse(args.payload) as Record<string, unknown>;
-  return eventEnvelopeSchema.parse({
-    schemaVersion: EVENT_SCHEMA_VERSION,
-    eventId: args.eventId ?? randomUUID(),
-    occurredAt: args.occurredAt ?? new Date().toISOString(),
-    source: EVENT_SOURCE,
+}): SamsEvent {
+  const event = buildSamsEvent({
     type: args.type,
+    payload: args.payload,
     sourceSyncId: args.sourceSyncId,
-    snapshotVersion: snapshotVersion(payload),
-    payload,
+    occurredAt: args.occurredAt ?? new Date().toISOString(),
+    eventId: args.eventId ?? randomUUID(),
+  });
+  eventEnvelopeSchema.parse(event);
+  return event;
+}
+
+export function parseValidatedSamsEvent(value: unknown): SamsEvent {
+  const envelope = eventEnvelopeSchema.parse(value);
+  return buildSamsEvent({
+    type: envelope.type,
+    payload: envelope.payload,
+    sourceSyncId: envelope.sourceSyncId,
+    occurredAt: envelope.occurredAt,
+    eventId: envelope.eventId,
+    snapshotVersion: envelope.snapshotVersion,
   });
 }
 

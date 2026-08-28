@@ -1,4 +1,4 @@
-# Projection events
+# SAMS provider events
 
 Reference for versioned envelopes the SAMS provider publishes to your SQS queue after registration.
 
@@ -15,9 +15,9 @@ bun add sams-provider-events
 3. SQS receives the standard EventBridge message wrapper. Parse the JSON **`detail`** field — that object is the projection envelope documented here.
 
 ```ts
-import { parseProjectionEventFromSqsBody } from "sams-provider-events";
+import { parseSamsEventFromSqsBody } from "sams-provider-events";
 
-const event = parseProjectionEventFromSqsBody(sqsRecord.body);
+const event = parseSamsEventFromSqsBody(sqsRecord.body);
 ```
 
 Every registered queue currently receives **all** event types. Subscription filtering is planned but not enforced yet.
@@ -26,7 +26,7 @@ Live match ticker data is **not** included. Build ticker handling in your own ap
 
 ## Common envelope
 
-Every event shares this shape (`ProjectionEvent` / `EventEnvelope`):
+Every event shares this shape (`SamsEvent`):
 
 | Field             | Type              | Description                                      |
 | ----------------- | ----------------- | ------------------------------------------------ |
@@ -234,7 +234,7 @@ These types exist in the contract for forward compatibility. **Do not expect the
 - Treat projection payloads as **snapshots** unless noted otherwise. Upsert by natural keys (`club.uuid`, `leagueUuid`, `match.uuid`, …).
 - Use `snapshotVersion` to dedupe replays and at-least-once delivery.
 - Configure a **dead-letter queue** on your SQS subscription so poison messages do not block processing.
-- TypeScript consumers should import `ProjectionEventType`, `TypedProjectionEvent`, and Zod schemas from `sams-provider-events`.
+- TypeScript consumers should import `SamsEventType`, `SamsEvent`, and optionally Zod schemas from `sams-provider-events`.
 
 ## Example envelope
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { createEventEnvelope, EventType } from "./schemas";
-import { parseProjectionEventFromSqsBody } from "./parse";
+import { createEventEnvelope, SamsEventType } from "./schemas";
+import { parseSamsEventFromSqsBody } from "./parse";
 
-describe("parseProjectionEventFromSqsBody", () => {
+describe("parseSamsEventFromSqsBody", () => {
   it("parses an EventBridge SQS wrapper", () => {
     const envelope = createEventEnvelope({
-      type: EventType.clubUpdated,
+      type: SamsEventType.clubUpdated,
       sourceSyncId: "sync-1",
       payload: {
         uuid: "club-1",
@@ -18,17 +18,17 @@ describe("parseProjectionEventFromSqsBody", () => {
     const sqsBody = JSON.stringify({
       version: "0",
       id: "evt-1",
-      "detail-type": EventType.clubUpdated,
+      "detail-type": SamsEventType.clubUpdated,
       source: "sams-provider",
       detail: envelope,
     });
 
-    expect(parseProjectionEventFromSqsBody(sqsBody)).toEqual(envelope);
+    expect(parseSamsEventFromSqsBody(sqsBody)).toEqual(envelope);
   });
 
   it("parses a bare envelope body", () => {
     const envelope = createEventEnvelope({
-      type: EventType.clubUpdated,
+      type: SamsEventType.clubUpdated,
       sourceSyncId: "sync-1",
       payload: {
         uuid: "club-1",
@@ -38,6 +38,6 @@ describe("parseProjectionEventFromSqsBody", () => {
       },
     });
 
-    expect(parseProjectionEventFromSqsBody(JSON.stringify(envelope))).toEqual(envelope);
+    expect(parseSamsEventFromSqsBody(JSON.stringify(envelope))).toEqual(envelope);
   });
 });

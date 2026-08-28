@@ -173,13 +173,16 @@ describe("club-match-schedule projection", () => {
     });
 
     expect(events).toHaveLength(1);
-    expect(events[0]?.type).toBe(EventType.clubMatchScheduleUpdated);
-    expect(events[0]?.payload.club).toMatchObject({
+    const event = events[0];
+    expect(event?.type).toBe(EventType.clubMatchScheduleUpdated);
+    if (!event || event.type !== EventType.clubMatchScheduleUpdated) {
+      throw new Error("expected club match schedule event");
+    }
+    expect(event.payload.club).toMatchObject({
       uuid: "club-1",
       name: "Example Club",
       logoUrl: "https://cdn.example/sams-logos/club-1.png",
     });
-    const payload = events[0]?.payload as { matches: Array<{ uuid: string }> };
-    expect(payload.matches[0]?.uuid).toBe("match-1");
+    expect(event.payload.matches[0]?.uuid).toBe("match-1");
   });
 });

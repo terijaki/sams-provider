@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
+import { SamsEventType } from "./constants";
 import {
   createEventEnvelope,
-  EventType,
   clubSeasonTeamsPayloadSchema,
   eventEnvelopeSchema,
   leagueRankingUpdatedPayloadSchema,
@@ -33,7 +33,7 @@ describe("event contracts", () => {
     });
 
     const event = createEventEnvelope({
-      type: EventType.clubSeasonTeamsUpdated,
+      type: SamsEventType.clubSeasonTeamsUpdated,
       sourceSyncId: "sync-1",
       occurredAt: "2026-08-27T12:00:00.000Z",
       eventId: "event-1",
@@ -48,7 +48,7 @@ describe("event contracts", () => {
   it("rejects payloads missing required projection fields", () => {
     expect(() =>
       createEventEnvelope({
-        type: EventType.clubUpdated,
+        type: SamsEventType.clubUpdated,
         sourceSyncId: "sync-1",
         payload: { uuid: "club-1" },
       }),
@@ -77,12 +77,15 @@ describe("event contracts", () => {
     });
 
     const event = createEventEnvelope({
-      type: EventType.leagueRankingUpdated,
+      type: SamsEventType.leagueRankingUpdated,
       sourceSyncId: "sync-1",
       payload,
     });
 
-    expect(eventEnvelopeSchema.parse(event).type).toBe("sams.league-ranking.updated");
+    expect(event.type).toBe(SamsEventType.leagueRankingUpdated);
+    if (event.type !== SamsEventType.leagueRankingUpdated) {
+      throw new Error("expected league ranking event");
+    }
     expect(event.payload.entries).toHaveLength(1);
     expect(event.snapshotVersion).toHaveLength(16);
   });
@@ -136,12 +139,15 @@ describe("event contracts", () => {
     });
 
     const event = createEventEnvelope({
-      type: EventType.matchBlockUpdated,
+      type: SamsEventType.matchBlockUpdated,
       sourceSyncId: "sync-1",
       payload,
     });
 
-    expect(eventEnvelopeSchema.parse(event).type).toBe("sams.match-block.updated");
+    expect(event.type).toBe(SamsEventType.matchBlockUpdated);
+    if (event.type !== SamsEventType.matchBlockUpdated) {
+      throw new Error("expected match block event");
+    }
     expect(event.payload.matches).toHaveLength(1);
     expect(event.snapshotVersion).toHaveLength(16);
   });
@@ -194,12 +200,15 @@ describe("event contracts", () => {
     });
 
     const event = createEventEnvelope({
-      type: EventType.clubMatchScheduleUpdated,
+      type: SamsEventType.clubMatchScheduleUpdated,
       sourceSyncId: "sync-1",
       payload,
     });
 
-    expect(eventEnvelopeSchema.parse(event).type).toBe("sams.club-match-schedule.updated");
+    expect(event.type).toBe(SamsEventType.clubMatchScheduleUpdated);
+    if (event.type !== SamsEventType.clubMatchScheduleUpdated) {
+      throw new Error("expected club match schedule event");
+    }
     expect(event.payload.matches).toHaveLength(1);
     expect(event.snapshotVersion).toHaveLength(16);
   });
