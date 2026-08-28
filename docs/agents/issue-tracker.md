@@ -39,7 +39,12 @@ Implemented today: `club` (`sams.club.updated`), `club-season-teams` (`sams.club
 
 ## Remaining provider gaps (not yet filed)
 
-- Multi-association sync and register (no SBVV-only assumptions in runtime paths)
+| Issue                                                      | Title                                                        |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) |
+
+Also consider filing separately:
+
 - Publish `sams.sync.completed` / `sams.sync.failed` (status subscription)
 - Enforce adaptive refresh intervals (cache table cursors)
 - Subscription-aware EventBridge rules (`consumer.subscriptions`)
