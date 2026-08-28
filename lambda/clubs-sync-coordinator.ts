@@ -9,7 +9,12 @@ import { AWS } from "@project.config";
 import { loadProviderRuntimeConfig } from "@src/config/load";
 import { EventBridgePublisher } from "@src/events/eventbridge-publisher";
 import { createEventEnvelope, SamsEventType } from "@src/events/schemas";
-import { fanOutClubsSyncWorkers, listAssociationsForClubsSync } from "@src/sync/clubs-coordinator";
+import { syncAssociationsFromSams } from "@src/sync/associations";
+import {
+  fanOutClubsSyncWorkers,
+  resolveAssociationsForClubsSync,
+} from "@src/sync/clubs-coordinator";
+import { getSamsClient } from "@utils/sams-client";
 import { createSamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { parseLambdaEnv } from "./utils/env";
 import { createDynamoDocClient, createLambdaResources } from "./utils/resources";
@@ -35,12 +40,32 @@ const lambdaHandler = async () => {
   const startedAt = Date.now();
 
   try {
-    const associations = await listAssociationsForClubsSync({
+    const { associations, devBootstrapped } = await resolveAssociationsForClubsSync({
+      environment: env.CDK_ENVIRONMENT,
       associationsRepo: repos.associations,
+      refreshAssociationsFromSams:
+        env.CDK_ENVIRONMENT === "dev"
+          ? async () => {
+              const sams = getSamsClient(config.samsApiKey);
+              await syncAssociationsFromSams({
+                sams,
+                associationsRepo: repos.associations,
+              });
+            }
+          : undefined,
     });
 
+    if (devBootstrapped) {
+      logger.info("Dev bootstrap refreshed associations from SAMS before club fan-out", {
+        associationsFound: associations.length,
+      });
+    }
+
     if (associations.length === 0) {
-      logger.warn("No associations in DynamoDB index; skipping club worker fan-out");
+      logger.warn("No associations in DynamoDB index; skipping club worker fan-out", {
+        environment: env.CDK_ENVIRONMENT,
+        devBootstrapped,
+      });
     }
 
     await fanOutClubsSyncWorkers({
