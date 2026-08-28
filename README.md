@@ -27,8 +27,9 @@ After that, events arrive on your queue. You still need a processor in **your** 
 Create these in **your** AWS account, in `eu-central-1` (Frankfurt). This repository does not create consumer queues.
 
 - SQS queue named `sams-provider-events`
-- A dead-letter queue attached to it
 - A queue resource policy that lets the production provider event bus send messages
+
+A dead-letter queue is recommended so failed processor runs do not drop messages. It is not required for registration.
 
 Production event bus:
 

@@ -13,7 +13,7 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 - Provider stacks already deployed in the account you are targeting (`DataStack`, `EventStack`, `SyncStack`, …)
 - AWS credentials for that **provider** account (prod for real consumers)
 - `SAMS_API_KEY` available to the local process (Varlock / `.env.local`)
-- Consumer already deployed queue `sams-provider-events` (plus a DLQ) in `eu-central-1` via **their** CDK
+- Consumer already deployed queue `sams-provider-events` in `eu-central-1` via **their** CDK
 - Queue policy allowing `events.amazonaws.com` to `sqs:SendMessage`, conditioned on the bus you are writing to
 
 | Provider env | When to use                         | Event bus ARN                                                      |

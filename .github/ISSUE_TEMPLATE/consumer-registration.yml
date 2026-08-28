@@ -39,8 +39,6 @@ body:
       options:
         - label: The queue in that ARN exists in `eu-central-1`.
           required: true
-        - label: A dead-letter queue is attached to that queue.
-          required: true
         - label: The queue policy matches the README (the provider event bus can send messages).
           required: true
   - type: textarea
