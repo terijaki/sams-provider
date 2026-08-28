@@ -13,7 +13,7 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 - Provider stacks already deployed in the account you are targeting (`DataStack`, `EventStack`, `SyncStack`, …)
 - AWS credentials for that **provider** account (prod for real consumers)
 - `SAMS_API_KEY` available to the local process (Varlock / `.env.local`)
-- Consumer already deployed queue `sams-provider-events` in `eu-central-1` via **their** CDK
+- Consumer already deployed an SQS queue in `eu-central-1` via **their** CDK. Use the queue ARN from the registration issue (`--queue-arn`).
 - Queue policy allowing `events.amazonaws.com` to `sqs:SendMessage`, conditioned on the bus you are writing to
 
 | Provider env | When to use                         | Event bus ARN                                                      |
@@ -49,7 +49,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 | `--account`     | yes      | —                                                         | 12-digit **consumer** AWS account ID         |
 | `--environment` | no       | `prod`                                                    | Provider bus to update. `dev` is tests only. |
 | `--consumer-id` | no       | slug of the club + environment (`club-name-prod`)         | Stable id stored in SSM                      |
-| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Override if the consumer uses another name   |
+| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Queue ARN from the registration issue        |
 
 `--environment` selects which provider SSM prefix and event bus to update (`/sams-provider/prod` vs `/sams-provider/dev`). It is not the consumer's CDK branch.
 

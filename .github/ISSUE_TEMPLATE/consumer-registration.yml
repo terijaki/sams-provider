@@ -28,7 +28,7 @@ body:
     attributes:
       label: Queue ARN
       description: Full SQS ARN of the events queue in `eu-central-1`.
-      placeholder: arn:aws:sqs:eu-central-1:123456789012:sams-provider-events
+      placeholder: arn:aws:sqs:eu-central-1:123456789012:your-queue
     validations:
       required: true
   - type: checkboxes
