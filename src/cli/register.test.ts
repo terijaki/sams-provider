@@ -4,6 +4,7 @@ import {
   parseRegisterArgs,
   parseRegisterEnvironment,
   REGISTER_USAGE,
+  resolveClub,
 } from "./register";
 
 describe("parseRegisterEnvironment", () => {
@@ -43,29 +44,83 @@ describe("parseRegisterArgs", () => {
       consumerId: undefined,
       queueArn: undefined,
       environment: "prod",
+      tableName: undefined,
+    });
+  });
+});
+
+describe("resolveClub", () => {
+  const clubUuid = "22222222-2222-4222-8222-222222222222";
+  const clubRow = {
+    sportsclubUuid: clubUuid,
+    type: "club" as const,
+    name: "Other Club",
+    nameSlug: "other-club",
+    associationUuid: "assoc-2",
+    associationName: "Assoc Two",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastSyncedAt: "2026-01-01T00:00:00.000Z",
+    source: "sams" as const,
+    ttl: 1,
+  };
+
+  it("resolves a club name from the provider index", async () => {
+    const club = await resolveClub({
+      clubsRepo: {
+        getById: async () => null,
+        listAll: async () => [clubRow],
+      },
+      nameOrUuid: "Other Club",
+    });
+
+    expect(club).toEqual({
+      uuid: clubUuid,
+      name: "Other Club",
+      associationUuid: "assoc-2",
+      associationName: "Assoc Two",
     });
   });
 
-  it("reads optional flags including internal-test environment", () => {
-    expect(
-      parseRegisterArgs([
-        "--club",
-        "Example Club",
-        "--account",
-        "123456789012",
-        "--environment",
-        "dev",
-        "--consumer-id",
-        "example-club-dev",
-        "--queue-arn",
-        "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
-      ]),
-    ).toEqual({
-      club: "Example Club",
-      account: "123456789012",
-      consumerId: "example-club-dev",
-      queueArn: "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
-      environment: "dev",
+  it("resolves a club UUID from the provider index", async () => {
+    const club = await resolveClub({
+      clubsRepo: {
+        getById: async (uuid) => (uuid === clubUuid ? clubRow : null),
+        listAll: async () => [],
+      },
+      nameOrUuid: clubUuid,
     });
+
+    expect(club.uuid).toBe(clubUuid);
+  });
+
+  it("reports ambiguity from the index without calling SAMS", async () => {
+    await expect(
+      resolveClub({
+        clubsRepo: {
+          getById: async () => null,
+          listAll: async () => [
+            clubRow,
+            {
+              ...clubRow,
+              sportsclubUuid: "11111111-1111-4111-8111-111111111111",
+              associationUuid: "assoc-3",
+            },
+          ],
+        },
+        nameOrUuid: "Other Club",
+      }),
+    ).rejects.toThrow('Club "Other Club" is ambiguous');
+  });
+
+  it("fails when the club is missing from the index", async () => {
+    await expect(
+      resolveClub({
+        clubsRepo: {
+          getById: async () => null,
+          listAll: async () => [],
+        },
+        nameOrUuid: "Missing Club",
+      }),
+    ).rejects.toThrow("was not found in the provider index");
   });
 });

@@ -28,7 +28,6 @@ export default defineConfig({
       VARLOCK_ENV: "test",
       CDK_ENVIRONMENT: "dev",
       SAMS_TABLE_NAME: "test-sams-table",
-      CACHE_TABLE_NAME: "test-cache-table",
       SAMS_API_KEY: "test-sams-api-key",
       SSM_PREFIX: "/sams-provider/dev",
       EVENT_BUS_NAME: "sams-provider",

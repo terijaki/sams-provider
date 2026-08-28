@@ -12,8 +12,8 @@ describe("SSM paths", () => {
   });
 
   it("scopes sync config to feature branches in dev", () => {
-    expect(ssmParameterPath("dev", "sync/associations", "my-feature")).toBe(
-      "/sams-provider/dev/my-feature/sync/associations",
+    expect(ssmParameterPath("dev", "sync/clubs", "my-feature")).toBe(
+      "/sams-provider/dev/my-feature/sync/clubs",
     );
     expect(ssmPrefix("dev", "my-feature")).toBe("/sams-provider/dev/my-feature");
   });

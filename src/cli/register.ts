@@ -1,7 +1,13 @@
 import { PutParameterCommand, GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { EventBridgeClient, PutRuleCommand, PutTargetsCommand } from "@aws-sdk/client-eventbridge";
-import { AWS, CONSUMER_QUEUE_NAME, SAMS } from "@project.config";
-import { getSamsClient } from "@utils/sams-client";
+import { AWS, CONSUMER_QUEUE_NAME } from "@project.config";
+import { computeSamsDataTableName } from "@lib/db/env";
+import { SamsClubsRepository } from "@lib/db/repositories/sams-clubs-repository";
+import type { SamsClubInput } from "@lib/db/schemas";
+import { SAMS_ENTITY_TTL_DAYS } from "../config/constants";
+import { unixTtlFromNow } from "@lib/db/repository-utils";
 import { slugify } from "@utils/slugify";
 import { providerEventBusArn, type ProviderEnvironment } from "@utils/provider-event-bus";
 import {
@@ -12,12 +18,15 @@ import {
   type ConsumerConfig,
 } from "../config/schema";
 import { EventType } from "../events/schemas";
-import { unwrapSamsResult } from "../sams/result";
 
-export const REGISTER_USAGE = `Usage: sams-provider register --club "Club Name" --account 123456789012`;
+export const REGISTER_USAGE =
+  'Usage: sams-provider register --club "Club Name" --account 123456789012';
 
 /** Public consumers are registered on prod. `dev` is maintainer testing only. */
 export const DEFAULT_REGISTER_ENVIRONMENT = "prod" as const;
+
+const INDEX_MISS_HINT =
+  "Run the weekly clubs sync (or invoke clubs-sync-coordinator) so the provider index is populated.";
 
 export type RegisterArgs = {
   club: string;
@@ -26,6 +35,14 @@ export type RegisterArgs = {
   environment?: ProviderEnvironment;
   queueArn?: string;
   eventBusName?: string;
+  tableName?: string;
+};
+
+export type ResolvedClub = {
+  uuid: string;
+  name: string;
+  associationUuid?: string;
+  associationName?: string;
 };
 
 function readFlag(argv: string[], name: string): string | undefined {
@@ -59,6 +76,7 @@ export function parseRegisterArgs(argv: string[]): RegisterArgs {
     consumerId: readFlag(argv, "consumer-id"),
     queueArn: readFlag(argv, "queue-arn"),
     environment: parseRegisterEnvironment(readFlag(argv, "environment")),
+    tableName: readFlag(argv, "table-name"),
   };
 }
 
@@ -67,9 +85,15 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
   consumer: ConsumerConfig;
 }> {
   const environment = parseRegisterEnvironment(args.environment);
+  const tableName = args.tableName ?? computeSamsDataTableName(environment, "");
+  const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: AWS.region }));
+  const clubsRepo = new SamsClubsRepository(documentClient, tableName);
+
   const ssm = new SSMClient({ region: AWS.region });
-  const sams = getSamsClient();
-  const club = await resolveClub(sams, args.club);
+  const resolvedClub = await resolveClub({
+    clubsRepo,
+    nameOrUuid: args.club,
+  });
   const consumerId =
     args.consumerId ?? `${slugify(args.club)}-${environment}`.replace(/[^a-z0-9-]/g, "-");
   const queueArn =
@@ -84,7 +108,7 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
   });
 
   const clubs = await readClubs(ssm, environment);
-  const existingClub = clubs.find((item) => item.uuid === club.uuid);
+  const existingClub = clubs.find((item) => item.uuid === resolvedClub.uuid);
   if (existingClub) {
     if (!existingClub.consumerIds.includes(consumer.id)) {
       existingClub.consumerIds.push(consumer.id);
@@ -92,8 +116,8 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
   } else {
     clubs.push(
       clubSubscriptionSchema.parse({
-        uuid: club.uuid,
-        name: club.name,
+        uuid: resolvedClub.uuid,
+        name: resolvedClub.name,
         consumerIds: [consumer.id],
       }),
     );
@@ -109,70 +133,81 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
 
   await putJson(ssm, ssmParameterPath(environment, "sync/clubs"), clubs);
   await putJson(ssm, ssmParameterPath(environment, "sync/consumers"), consumers);
+  await upsertClubStub({ clubsRepo, club: resolvedClub });
   await upsertEventBridgeTargets({
     environment,
     eventBusName: args.eventBusName ?? "sams-provider",
     consumer,
   });
 
-  const registered = clubs.find((item) => item.uuid === club.uuid);
+  const registered = clubs.find((item) => item.uuid === resolvedClub.uuid);
   if (!registered) {
-    throw new Error(`Failed to persist club ${club.uuid}`);
+    throw new Error(`Failed to persist club ${resolvedClub.uuid}`);
   }
   return { club: registered, consumer };
 }
 
-async function resolveClub(sams: ReturnType<typeof getSamsClient>, nameOrUuid: string) {
-  if (/^[0-9a-f-]{36}$/i.test(nameOrUuid)) {
-    const { data, error } = unwrapSamsResult(
-      await sams.getSportsclub({ path: { uuid: nameOrUuid } }),
-    );
-    if (error || !data?.uuid || !data.name) {
-      throw new Error(`Club UUID ${nameOrUuid} was not found`);
+export async function resolveClub(args: {
+  clubsRepo: Pick<SamsClubsRepository, "getById" | "listAll">;
+  nameOrUuid: string;
+}): Promise<ResolvedClub> {
+  if (/^[0-9a-f-]{36}$/i.test(args.nameOrUuid)) {
+    const indexed = await args.clubsRepo.getById(args.nameOrUuid);
+    if (!indexed) {
+      throw new Error(
+        `Club UUID ${args.nameOrUuid} was not found in the provider index. ${INDEX_MISS_HINT}`,
+      );
     }
-    return { uuid: data.uuid, name: data.name };
+    return clubFromIndex(indexed);
   }
 
-  const { data: associations } = await sams.getAssociationByUuid({
-    path: { uuid: SAMS.defaultAssociation.uuid },
-  });
-  const associationUuid = associations?.uuid ?? SAMS.defaultAssociation.uuid;
-  const matches: Array<{ uuid: string; name: string }> = [];
-  let page = 0;
-  let hasMore = true;
-  const wanted = slugify(nameOrUuid);
-
-  while (hasMore) {
-    const { data, error } = unwrapSamsResult(
-      await sams.getAllSportsclubs({
-        query: { association: associationUuid, page, size: 100 },
-      }),
-    );
-    if (error) {
-      throw new Error("Failed to search clubs in SAMS");
-    }
-    for (const club of data?.content ?? []) {
-      if (club.uuid && club.name && slugify(club.name) === wanted) {
-        matches.push({ uuid: club.uuid, name: club.name });
-      }
-    }
-    page += 1;
-    hasMore = data?.last !== true;
-  }
+  const wanted = slugify(args.nameOrUuid);
+  const matches = (await args.clubsRepo.listAll()).filter((club) => club.nameSlug === wanted);
 
   if (matches.length === 0) {
-    throw new Error(`Club "${nameOrUuid}" was not found`);
+    throw new Error(
+      `Club "${args.nameOrUuid}" was not found in the provider index. ${INDEX_MISS_HINT}`,
+    );
   }
   if (matches.length > 1) {
-    throw new Error(
-      `Club "${nameOrUuid}" is ambiguous (${matches.map((item) => item.uuid).join(", ")})`,
-    );
+    const details = matches
+      .map(
+        (item) =>
+          `${item.name} (${item.sportsclubUuid}, ${item.associationName ?? "unknown association"})`,
+      )
+      .join("; ");
+    throw new Error(`Club "${args.nameOrUuid}" is ambiguous (${details}). Pass the club UUID.`);
   }
   const match = matches[0];
   if (!match) {
-    throw new Error(`Club "${nameOrUuid}" was not found`);
+    throw new Error(
+      `Club "${args.nameOrUuid}" was not found in the provider index. ${INDEX_MISS_HINT}`,
+    );
   }
-  return match;
+  return clubFromIndex(match);
+}
+
+function clubFromIndex(club: SamsClubInput): ResolvedClub {
+  return {
+    uuid: club.sportsclubUuid,
+    name: club.name,
+    ...(club.associationUuid ? { associationUuid: club.associationUuid } : {}),
+    ...(club.associationName ? { associationName: club.associationName } : {}),
+  };
+}
+
+async function upsertClubStub(args: {
+  clubsRepo: SamsClubsRepository;
+  club: ResolvedClub;
+}): Promise<void> {
+  await args.clubsRepo.upsert({
+    sportsclubUuid: args.club.uuid,
+    name: args.club.name,
+    nameSlug: slugify(args.club.name),
+    ...(args.club.associationUuid ? { associationUuid: args.club.associationUuid } : {}),
+    ...(args.club.associationName ? { associationName: args.club.associationName } : {}),
+    ttl: unixTtlFromNow(SAMS_ENTITY_TTL_DAYS),
+  });
 }
 
 async function readClubs(ssm: SSMClient, environment: string): Promise<ClubSubscription[]> {

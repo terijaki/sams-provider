@@ -17,14 +17,14 @@ interface SyncStackProps extends cdk.StackProps {
     branch: string;
   };
   samsDataTableName: string;
-  cacheTableName: string;
   logoBucketName: string;
   publicLogoBaseUrl: string;
   eventBusName: string;
 }
 
 export class SyncStack extends cdk.Stack {
-  public readonly clubsSync: NodejsFunction;
+  public readonly clubsSyncCoordinator: NodejsFunction;
+  public readonly clubsSyncWorker: NodejsFunction;
   public readonly teamsSync: NodejsFunction;
   public readonly matchRefresh: NodejsFunction;
 
@@ -40,14 +40,12 @@ export class SyncStack extends cdk.Stack {
       "SamsDataTable",
       props.samsDataTableName,
     );
-    const cacheTable = dynamodb.Table.fromTableName(this, "CacheTable", props.cacheTableName);
     const logoBucket = s3.Bucket.fromBucketName(this, "LogoBucket", props.logoBucketName);
     const eventBus = events.EventBus.fromEventBusName(this, "ProviderBus", props.eventBusName);
 
     const commonEnvironment = {
       CDK_ENVIRONMENT: environment,
       SAMS_TABLE_NAME: props.samsDataTableName,
-      CACHE_TABLE_NAME: props.cacheTableName,
       LOGO_BUCKET_NAME: props.logoBucketName,
       LOGO_PUBLIC_BASE_URL: props.publicLogoBaseUrl,
       EVENT_BUS_NAME: props.eventBusName,
@@ -56,12 +54,23 @@ export class SyncStack extends cdk.Stack {
       POWERTOOLS_METRICS_NAMESPACE: "SamsProvider",
     };
 
-    this.clubsSync = new SpNodejsFunction(this, "ClubsSync", {
+    this.clubsSyncWorker = new SpNodejsFunction(this, "ClubsSyncWorker", {
       namespace: "sams",
-      name: "clubs-sync",
-      entry: path.join(__dirname, "../../lambda/clubs-sync.ts"),
-      timeout: cdk.Duration.minutes(5),
+      name: "clubs-sync-worker",
+      entry: path.join(__dirname, "../../lambda/clubs-sync-worker.ts"),
+      timeout: cdk.Duration.minutes(15),
       environment: commonEnvironment,
+    }).lambdaFunction;
+
+    this.clubsSyncCoordinator = new SpNodejsFunction(this, "ClubsSyncCoordinator", {
+      namespace: "sams",
+      name: "clubs-sync-coordinator",
+      entry: path.join(__dirname, "../../lambda/clubs-sync-coordinator.ts"),
+      timeout: cdk.Duration.minutes(5),
+      environment: {
+        ...commonEnvironment,
+        CLUBS_SYNC_WORKER_FUNCTION_NAME: this.clubsSyncWorker.functionName,
+      },
     }).lambdaFunction;
 
     this.teamsSync = new SpNodejsFunction(this, "TeamsSync", {
@@ -80,9 +89,13 @@ export class SyncStack extends cdk.Stack {
       environment: commonEnvironment,
     }).lambdaFunction;
 
-    for (const fn of [this.clubsSync, this.teamsSync, this.matchRefresh]) {
+    for (const fn of [
+      this.clubsSyncCoordinator,
+      this.clubsSyncWorker,
+      this.teamsSync,
+      this.matchRefresh,
+    ]) {
       samsDataTable.grantReadWriteData(fn);
-      cacheTable.grantReadWriteData(fn);
       eventBus.grantPutEventsTo(fn);
       fn.addToRolePolicy(
         new iam.PolicyStatement({
@@ -94,27 +107,32 @@ export class SyncStack extends cdk.Stack {
         }),
       );
     }
-    logoBucket.grantReadWrite(this.clubsSync);
 
-    const activeMonths = "1,2,3,4,5,8,9,10,11,12";
+    this.clubsSyncCoordinator.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["lambda:InvokeFunction"],
+        resources: [this.clubsSyncWorker.functionArn],
+      }),
+    );
+
+    logoBucket.grantReadWrite(this.clubsSyncWorker);
+
     new events.Rule(this, "ClubsSyncRule", {
       ruleName: `sams-clubs-weekly-sync-${environment}${branchSuffix}`,
-      description: `Weekly clubs sync except June/July (${environment}${branchSuffix})`,
+      description: `Weekly clubs sync (${environment}${branchSuffix})`,
       schedule: events.Schedule.cron({
         weekDay: "WED",
         hour: "2",
         minute: "0",
-        month: activeMonths,
       }),
-    }).addTarget(new targets.LambdaFunction(this.clubsSync));
+    }).addTarget(new targets.LambdaFunction(this.clubsSyncCoordinator));
 
     new events.Rule(this, "TeamsSyncRule", {
       ruleName: `sams-teams-nightly-sync-${environment}${branchSuffix}`,
-      description: `Nightly teams sync except June/July (${environment}${branchSuffix})`,
+      description: `Nightly teams sync (${environment}${branchSuffix})`,
       schedule: events.Schedule.cron({
         hour: "3",
         minute: "0",
-        month: activeMonths,
       }),
     }).addTarget(new targets.LambdaFunction(this.teamsSync));
 
@@ -124,8 +142,11 @@ export class SyncStack extends cdk.Stack {
       schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
     }).addTarget(new targets.LambdaFunction(this.matchRefresh));
 
-    new cdk.CfnOutput(this, "ClubsSyncFunctionName", {
-      value: buildLambdaFunctionName("clubs-sync"),
+    new cdk.CfnOutput(this, "ClubsSyncCoordinatorFunctionName", {
+      value: buildLambdaFunctionName("clubs-sync-coordinator"),
+    });
+    new cdk.CfnOutput(this, "ClubsSyncWorkerFunctionName", {
+      value: buildLambdaFunctionName("clubs-sync-worker"),
     });
     new cdk.CfnOutput(this, "TeamsSyncFunctionName", {
       value: buildLambdaFunctionName("teams-sync"),

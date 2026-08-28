@@ -2,7 +2,6 @@ import * as cdk from "aws-cdk-lib";
 import * as events from "aws-cdk-lib/aws-events";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
-import { SAMS } from "@project.config";
 import { DEFAULT_MATCH_REFRESH_POLICY, ssmParameterPath } from "../../src/config/schema";
 import { computeResourceBranchSuffix } from "../db/env";
 
@@ -28,18 +27,6 @@ export class EventStack extends cdk.Stack {
     this.eventBus = new events.EventBus(this, "ProviderBus", {
       eventBusName: this.eventBusName,
       description: "Normalized SAMS domain events for consumer apps",
-    });
-
-    new ssm.StringParameter(this, "AssociationsParam", {
-      parameterName: ssmParameterPath(environment, "sync/associations", branch),
-      stringValue: JSON.stringify([
-        {
-          name: SAMS.defaultAssociation.name,
-          shortName: SAMS.defaultAssociation.shortName,
-          uuid: SAMS.defaultAssociation.uuid,
-        },
-      ]),
-      description: "Associations to keep in sync",
     });
 
     new ssm.StringParameter(this, "MatchRefreshPolicyParam", {
