@@ -20,7 +20,7 @@ After that, events arrive on your queue. You still need a processor in **your** 
 | -------------- | ------------------------------------------------------------------------------ |
 | Club           | Exact SAMS club name, or the club's 36-character UUID if the name is ambiguous |
 | AWS account ID | 12-digit account that owns the queue                                           |
-| Queue ARN      | Only if the queue is **not** named `sams-provider-events`                      |
+| Queue ARN      | Full SQS ARN of the events queue                                               |
 
 ## What you deploy
 

@@ -26,16 +26,18 @@ body:
   - type: input
     id: queue-arn
     attributes:
-      label: Queue ARN (if not the default name)
-      description: Leave empty if the queue is named `sams-provider-events` in `eu-central-1`. Otherwise paste the full SQS ARN.
+      label: Queue ARN
+      description: Full SQS ARN of the events queue in `eu-central-1`.
       placeholder: arn:aws:sqs:eu-central-1:123456789012:sams-provider-events
+    validations:
+      required: true
   - type: checkboxes
     id: prerequisites
     attributes:
       label: Prerequisites
       description: Confirm these already exist in your AWS account.
       options:
-        - label: Queue `sams-provider-events` exists in `eu-central-1` (or I supplied a different queue ARN above).
+        - label: The queue in that ARN exists in `eu-central-1`.
           required: true
         - label: A dead-letter queue is attached to that queue.
           required: true
