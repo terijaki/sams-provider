@@ -1,14 +1,9 @@
 import { PutParameterCommand, GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { EventBridgeClient, PutRuleCommand, PutTargetsCommand } from "@aws-sdk/client-eventbridge";
-import {
-  AWS,
-  CONSUMER_QUEUE_NAME,
-  SAMS,
-  providerEventBusArn,
-  type ProviderEnvironment,
-} from "@project.config";
+import { AWS, CONSUMER_QUEUE_NAME, SAMS, type ProviderEnvironment } from "@project.config";
 import { getSamsClient } from "@utils/sams-client";
 import { slugify } from "@utils/slugify";
+import { providerEventBusArn } from "@utils/provider-event-bus";
 import {
   clubSubscriptionSchema,
   consumerConfigSchema,

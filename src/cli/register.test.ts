@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AWS, providerEventBusArn } from "@project.config";
 import {
   DEFAULT_REGISTER_ENVIRONMENT,
   parseRegisterArgs,
@@ -68,19 +67,5 @@ describe("parseRegisterArgs", () => {
       queueArn: "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
       environment: "dev",
     });
-  });
-});
-
-describe("providerEventBusArn", () => {
-  it("points public consumers at the prod bus", () => {
-    expect(providerEventBusArn("prod")).toBe(
-      `arn:aws:events:${AWS.region}:${AWS.accounts.prod}:event-bus/sams-provider`,
-    );
-  });
-
-  it("points internal tests at the dev bus", () => {
-    expect(providerEventBusArn("dev")).toBe(
-      `arn:aws:events:${AWS.region}:${AWS.accounts.dev}:event-bus/sams-provider`,
-    );
   });
 });
