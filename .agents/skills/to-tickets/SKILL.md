@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-This repo uses **GitHub Issues** exclusively. Use the `gh` CLI for all tracker operations — see [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md).
+This repo uses **GitHub Issues** exclusively. Use the `gh` CLI for all tracker operations — see [`AGENTS.md`](../../AGENTS.md#issue-tracker).
 
 ## Process
 
@@ -72,7 +72,7 @@ Publish in dependency order (blockers first) so blocking edges can reference rea
 
    Use `--input` with JSON, not `-f` — `sub_issue_id` must be an integer database id, not `#number`.
 
-3. **Wire blocking edges in a second pass** using GitHub's native issue dependencies (see "Blocking" in [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md)):
+3. **Wire blocking edges in a second pass** using GitHub's native issue dependencies (see [`AGENTS.md`](../../AGENTS.md#issue-tracker)):
 
    ```bash
    gh api --method POST repos/<owner>/<repo>/issues/<child_number>/dependencies/blocked_by -f issue_id=<blocker-db-id>

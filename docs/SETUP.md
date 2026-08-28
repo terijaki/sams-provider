@@ -124,10 +124,4 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 ## Issue tracking
 
-Provider-scope GitHub Issues: [`docs/agents/issue-tracker.md`](agents/issue-tracker.md). Original PRD ([#1](https://github.com/terijaki/sams-provider/issues/1)) — v1 scope delivered.
-
-## Tickets left for a later session
-
-- Provider gaps — see issue tracker (status events, adaptive throttle, subscription filters, observability)
-- End-to-end EventBridge → consumer SQS ([#10](https://github.com/terijaki/sams-provider/issues/10); consumers deploy queues first)
-- Consumer event processors (consumer repos)
+Provider work is tracked in [GitHub Issues](https://github.com/terijaki/sams-provider/issues). See [`AGENTS.md`](../AGENTS.md#issue-tracker) for `gh` conventions.

@@ -93,4 +93,4 @@ _Avoid_: 5-minute cache, cron poll
 
 ## Issue tracking
 
-Provider milestones and projection work: [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md). Original PRD ([#1](https://github.com/terijaki/sams-provider/issues/1)) — v1 scope delivered; see the issue tracker for open work.
+Work is tracked in [GitHub Issues](https://github.com/terijaki/sams-provider/issues). PRD v1 provider scope is delivered ([#1](https://github.com/terijaki/sams-provider/issues/1)). Remaining open issues: [#10](https://github.com/terijaki/sams-provider/issues/10) (first consumer), [#11](https://github.com/terijaki/sams-provider/issues/11) (live ticker, out of v1).

@@ -42,7 +42,11 @@ Agent workflows live in `.agents/skills/`. Invoke them when the user names a ski
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+Issues are tracked in **GitHub Issues** — use the `gh` CLI (`gh issue create`, `gh issue view`, `gh issue list`, `gh issue comment`, `gh issue close`). Infer the repo from `git remote -v`.
+
+For `/to-tickets`: link sub-issues with `gh api repos/<owner>/<repo>/issues/<parent>/sub_issues -X POST --input -` (pass `sub_issue_id` as the child's database `.id`, not `#number`). Wire blockers with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -f issue_id=<blocker-db-id>`.
+
+Open provider work: [#10](https://github.com/terijaki/sams-provider/issues/10) (first consumer registration), [#11](https://github.com/terijaki/sams-provider/issues/11) (live ticker, out of v1).
 
 ### Domain docs
 
