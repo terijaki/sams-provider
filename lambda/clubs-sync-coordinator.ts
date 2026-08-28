@@ -9,8 +9,11 @@ import { AWS } from "@project.config";
 import { loadProviderRuntimeConfig } from "@src/config/load";
 import { EventBridgePublisher } from "@src/events/eventbridge-publisher";
 import { createEventEnvelope, SamsEventType } from "@src/events/schemas";
-import { syncAssociationsFromSams } from "@src/sync/associations";
-import { getSamsClient } from "@utils/sams-client";
+import {
+  fanOutClubsSyncWorkers,
+  listAssociationsForClubsSync,
+  requireAssociationsForClubsSync,
+} from "@src/sync/clubs-coordinator";
 import { createSamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { parseLambdaEnv } from "./utils/env";
 import { createDynamoDocClient, createLambdaResources } from "./utils/resources";
@@ -31,31 +34,40 @@ const lambdaHandler = async () => {
     ssmPrefix: env.SSM_PREFIX,
     ssm,
   });
-  const sams = getSamsClient(config.samsApiKey);
   const publisher = new EventBridgePublisher(eventBridge, env.EVENT_BUS_NAME);
   const registeredClubUuids = config.clubs.map((club) => club.uuid);
   const startedAt = Date.now();
 
   try {
-    const { associations } = await syncAssociationsFromSams({
-      sams,
+    const associations = await listAssociationsForClubsSync({
       associationsRepo: repos.associations,
     });
+    requireAssociationsForClubsSync({
+      environment: env.CDK_ENVIRONMENT,
+      associations,
+    });
 
-    for (const association of associations) {
-      await lambda.send(
-        new InvokeCommand({
-          FunctionName: env.CLUBS_SYNC_WORKER_FUNCTION_NAME,
-          InvocationType: "Event",
-          Payload: JSON.stringify({
-            associationUuid: association.uuid,
-            associationName: association.name,
-            sourceSyncId,
-            registeredClubUuids,
-          }),
-        }),
-      );
+    if (associations.length === 0) {
+      logger.info("No associations in DynamoDB index; skipping club worker fan-out (dev)");
     }
+
+    await fanOutClubsSyncWorkers({
+      associations,
+      invokeWorker: async (association) => {
+        await lambda.send(
+          new InvokeCommand({
+            FunctionName: env.CLUBS_SYNC_WORKER_FUNCTION_NAME,
+            InvocationType: "Event",
+            Payload: JSON.stringify({
+              associationUuid: association.uuid,
+              associationName: association.name,
+              sourceSyncId,
+              registeredClubUuids,
+            }),
+          }),
+        );
+      },
+    });
 
     await publisher.publish([
       createEventEnvelope({

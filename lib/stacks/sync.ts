@@ -23,6 +23,7 @@ interface SyncStackProps extends cdk.StackProps {
 }
 
 export class SyncStack extends cdk.Stack {
+  public readonly associationsSync: NodejsFunction;
   public readonly clubsSyncCoordinator: NodejsFunction;
   public readonly clubsSyncWorker: NodejsFunction;
   public readonly teamsSync: NodejsFunction;
@@ -53,6 +54,14 @@ export class SyncStack extends cdk.Stack {
       POWERTOOLS_SERVICE_NAME: "sams-provider",
       POWERTOOLS_METRICS_NAMESPACE: "SamsProvider",
     };
+
+    this.associationsSync = new SpNodejsFunction(this, "AssociationsSync", {
+      namespace: "sams",
+      name: "associations-sync",
+      entry: path.join(__dirname, "../../lambda/associations-sync.ts"),
+      timeout: cdk.Duration.minutes(5),
+      environment: commonEnvironment,
+    }).lambdaFunction;
 
     this.clubsSyncWorker = new SpNodejsFunction(this, "ClubsSyncWorker", {
       namespace: "sams",
@@ -90,6 +99,7 @@ export class SyncStack extends cdk.Stack {
     }).lambdaFunction;
 
     for (const fn of [
+      this.associationsSync,
       this.clubsSyncCoordinator,
       this.clubsSyncWorker,
       this.teamsSync,
@@ -117,6 +127,16 @@ export class SyncStack extends cdk.Stack {
 
     logoBucket.grantReadWrite(this.clubsSyncWorker);
 
+    new events.Rule(this, "AssociationsSyncRule", {
+      ruleName: `sams-associations-weekly-sync-${environment}${branchSuffix}`,
+      description: `Weekly associations refresh (${environment}${branchSuffix})`,
+      schedule: events.Schedule.cron({
+        weekDay: "TUE",
+        hour: "22",
+        minute: "0",
+      }),
+    }).addTarget(new targets.LambdaFunction(this.associationsSync));
+
     new events.Rule(this, "ClubsSyncRule", {
       ruleName: `sams-clubs-weekly-sync-${environment}${branchSuffix}`,
       description: `Weekly clubs sync (${environment}${branchSuffix})`,
@@ -142,6 +162,9 @@ export class SyncStack extends cdk.Stack {
       schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
     }).addTarget(new targets.LambdaFunction(this.matchRefresh));
 
+    new cdk.CfnOutput(this, "AssociationsSyncFunctionName", {
+      value: buildLambdaFunctionName("associations-sync"),
+    });
     new cdk.CfnOutput(this, "ClubsSyncCoordinatorFunctionName", {
       value: buildLambdaFunctionName("clubs-sync-coordinator"),
     });

@@ -4,6 +4,8 @@ Event payloads must stay versioned and bounded. The consumer contract lives in [
 
 Provider code imports the npm contract through [`src/events/schemas.ts`](events/schemas.ts). Event publishing helpers (`createEventEnvelope`, `snapshotVersion`) live in [`src/events/envelope.ts`](events/envelope.ts) and are not part of the published package.
 
+Sync job architecture, schedules, and flow diagrams: [`docs/sync.md`](../docs/sync.md).
+
 ## Consumer documentation
 
 Audience: club app developers installing `sams-provider-events` or registering for event delivery.
