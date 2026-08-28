@@ -4,7 +4,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Requesting production event delivery for a club? Use **[Register as a consumer](https://github.com/terijaki/sams-provider/issues/new?template=consumer-registration.yml)** instead.
+        Requesting event delivery for a club? Use **[Register as a consumer](https://github.com/terijaki/sams-provider/issues/new?template=consumer-registration.yml)** instead.
   - type: dropdown
     id: kind
     attributes:

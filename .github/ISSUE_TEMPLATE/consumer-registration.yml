@@ -1,14 +1,12 @@
 name: Register as a consumer
-description: Request production event delivery for your club after the SQS queue exists in your AWS account.
+description: Request event delivery for your club. Deploy the SQS queue first.
 title: "Register: "
 labels: ["registration"]
 body:
   - type: markdown
     attributes:
       value: |
-        Public consumers are registered on the **production** provider only (`550271577754` in `eu-central-1`).
-
-        Deploy the queue and policy first, then file this issue. The checklist and resource names are in the [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).
+        Queue setup is in the [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).
   - type: input
     id: club
     attributes:
@@ -35,18 +33,16 @@ body:
     id: prerequisites
     attributes:
       label: Prerequisites
-      description: Confirm these are done in your AWS account. Registration cannot create the queue for you.
+      description: Confirm these already exist in your AWS account.
       options:
-        - label: An SQS queue named `sams-provider-events` exists in `eu-central-1` (or I supplied a different queue ARN above).
+        - label: Queue `sams-provider-events` exists in `eu-central-1` (or I supplied a different queue ARN above).
           required: true
         - label: A dead-letter queue is attached to that queue.
           required: true
-        - label: The queue policy allows `events.amazonaws.com` to `sqs:SendMessage`, conditioned on `arn:aws:events:eu-central-1:550271577754:event-bus/sams-provider` (and source account `550271577754`).
-          required: true
-        - label: I understand there is no public read API; my app will consume events from this queue.
+        - label: The queue policy matches the README (the provider event bus can send messages).
           required: true
   - type: textarea
     id: notes
     attributes:
       label: Notes
-      description: Optional. Contact details, extra AWS accounts, or anything else the maintainer should know.
+      description: Optional. Contact details, extra AWS accounts, or anything else we should know.
