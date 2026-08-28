@@ -14,13 +14,15 @@ export const AWS = {
 } as const;
 
 export const SAMS = {
+  /** SAMS instance this provider calls. The host is not an association. */
   server: "https://www.volleyball-baden.de",
+  /**
+   * Paginated GET /associations often omits some associations (including SBVV).
+   * Direct UUID fetch is an upstream workaround, not a provider default association.
+   */
   defaultAssociation: {
     name: "Südbadischer Volleyball-Verband",
     shortName: "SBVV",
-    /**
-     * Paginated GET /associations often omits SBVV. Direct UUID fetch is the workaround.
-     */
     uuid: "2b7571b5-f985-c552-ea1c-f819ed3811c1",
   },
 } as const;

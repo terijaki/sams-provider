@@ -57,7 +57,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 ## What it writes
 
 1. **Resolves the club** from the provider DynamoDB club index only (no live SAMS calls). Name lookup is case-insensitive via slug; pass the UUID when ambiguous. Run clubs sync first if the club is not indexed yet.
-2. **DynamoDB** provider data table — club stub with `associationUuid` and name so teams sync can scope leagues before the next clubs sync.
+2. **DynamoDB** provider data table — refreshes the club stub TTL and association fields from the index.
 3. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 4. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
 5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in `src/events/schemas.ts`.

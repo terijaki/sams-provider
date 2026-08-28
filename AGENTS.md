@@ -35,3 +35,15 @@ Instructions for AI coding agents working in this repository.
 ## AWS accounts
 
 Two accounts: **dev** (`449952321849`, internal testing) and **prod** (`550271577754`, public consumer registrations). GitHub Actions uses Environments `dev` / `prod` with the same secret name `AWS_ROLE_ARN`. Shared stacks are not part of `cdk deploy --all`. Prod CI deploys them after merge to `main`; the dev account still uses local `cdk:deploy:shared`. See `docs/SETUP.md`.
+
+## Agent skills
+
+Agent workflows live in `.agents/skills/`. Invoke them when the user names a skill or the task matches a skill description.
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Domain docs
+
+This repository is configured as single-context: root `CONTEXT.md` and `docs/adr` are the domain sources. See [`docs/agents/domain.md`](docs/agents/domain.md).
