@@ -4,7 +4,7 @@ import {
   leagueRankingUpdatedPayloadSchema,
   matchBlockUpdatedPayloadSchema,
   clubMatchSchedulePayloadSchema,
-} from "sams-provider-events";
+} from "./schemas";
 
 describe("event payload schemas", () => {
   it("rejects payloads missing required projection fields", () => {

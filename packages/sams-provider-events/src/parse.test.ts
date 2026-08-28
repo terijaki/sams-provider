@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { SamsEventType } from "sams-provider-events";
+import { SamsEventType } from "./constants";
 import { contractPayloadFixtures } from "./contract-fixtures";
 import { parseSamsEventFromSqsBody } from "./parse";
 
