@@ -1,0 +1,48 @@
+name: Register as a consumer
+description: Request event delivery for your club. Deploy the SQS queue first.
+title: "Register: "
+labels: ["registration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Queue setup is in the [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).
+  - type: input
+    id: club
+    attributes:
+      label: Club name or SAMS UUID
+      description: Exact club name as it appears in SAMS, or the 36-character club UUID if the name is ambiguous.
+      placeholder: Example Volleyball Club
+    validations:
+      required: true
+  - type: input
+    id: account-id
+    attributes:
+      label: AWS account ID
+      description: 12-digit AWS account that owns the queue.
+      placeholder: "123456789012"
+    validations:
+      required: true
+  - type: input
+    id: queue-arn
+    attributes:
+      label: Queue ARN
+      description: Full SQS ARN of the events queue in `eu-central-1`.
+      placeholder: arn:aws:sqs:eu-central-1:123456789012:your-queue
+    validations:
+      required: true
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Confirm these already exist in your AWS account.
+      options:
+        - label: The queue in that ARN exists in `eu-central-1`.
+          required: true
+        - label: The queue policy matches the README (the provider event bus can send messages).
+          required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional. Contact details, extra AWS accounts, or anything else we should know.
