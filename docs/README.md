@@ -1,7 +1,8 @@
 # Maintainer documentation
 
-These pages are for people who operate this repository, not for clubs requesting event delivery. Consumer-facing steps live in the [root README](../README.md).
+These pages are for people who operate this repository, not for clubs requesting event delivery. Consumer-facing steps live in the [root README](../README.md) and [consumer docs](./consumers/README.md).
 
+- [Consumer documentation](./consumers/README.md) — why register, event reference, npm types package
 - [SETUP.md](SETUP.md) — local toolchain, AWS accounts, CI/CD
 - [Register CLI](../src/cli/README.md) — wire a consumer queue to the provider event bus
 - [agents/issue-tracker.md](agents/issue-tracker.md) — GitHub Issues conventions for agent skills
