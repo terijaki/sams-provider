@@ -37,6 +37,7 @@ const lambdaHandler = async () => {
       publisher,
       clubs: config.clubs,
       policy: config.matchRefreshPolicy,
+      publicLogoBaseUrl: env.LOGO_PUBLIC_BASE_URL,
       sourceSyncId,
     });
     logger.info("Match refresh completed", result);

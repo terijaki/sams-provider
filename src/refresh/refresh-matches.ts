@@ -8,6 +8,7 @@ import {
   planMatchRefresh,
   type PlannedMatch,
 } from "../refresh/planner";
+import { buildLeagueRankingProjection } from "../projections/league-ranking";
 import { unwrapSamsResult } from "../sams/result";
 import type { SamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
@@ -18,6 +19,7 @@ export async function refreshMatchesAndRankings(args: {
   publisher: DomainEventPublisher;
   clubs: ClubSubscription[];
   policy: MatchRefreshPolicy;
+  publicLogoBaseUrl: string;
   sourceSyncId: string;
   now?: Date;
   sleep?: (ms: number) => Promise<void>;
@@ -110,19 +112,29 @@ export async function refreshMatchesAndRankings(args: {
         path: { uuid: block.leagueUuid },
         query: { page: 0, size: 100 },
       });
+      const seasonUuid = matches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
+      const entries = await buildLeagueRankingProjection({
+        entries: rankingData?.content ?? [],
+        repos: args.repos,
+        sams: args.sams,
+        publicLogoBaseUrl: args.publicLogoBaseUrl,
+        leagueUuid: block.leagueUuid,
+        seasonUuid,
+        sleep,
+      });
       events.push(
         createEventEnvelope({
           type: EventType.leagueRankingUpdated,
           sourceSyncId: args.sourceSyncId,
           payload: {
             leagueUuid: block.leagueUuid,
-            seasonUuid: matches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown",
+            seasonUuid,
             cachedAt,
             refreshState: decision.state,
             nextRefreshAfter: decision.nextRefreshAfter,
             isStale: false,
             sourceMatchBlockId: block.id,
-            entries: rankingData?.content ?? [],
+            entries,
           },
         }),
       );
