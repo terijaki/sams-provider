@@ -35,3 +35,19 @@ Instructions for AI coding agents working in this repository.
 ## AWS accounts
 
 Two accounts: **dev** (`449952321849`, internal testing) and **prod** (`550271577754`, public consumer registrations). GitHub Actions uses Environments `dev` / `prod` with the same secret name `AWS_ROLE_ARN`. Shared stacks are not part of `cdk deploy --all`. Prod CI deploys them after merge to `main`; the dev account still uses local `cdk:deploy:shared`. See `docs/SETUP.md`.
+
+## Agent skills
+
+Agent workflows live in `.agents/skills/`. Invoke them when the user names a skill or the task matches a skill description.
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues, and external pull requests are also treated as a triage request surface. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
+### Triage labels
+
+The triage workflow uses the canonical label vocabulary as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+
+### Domain docs
+
+This repository is configured as single-context: root `CONTEXT.md` and `docs/adr` are the domain sources. See [`docs/agents/domain.md`](docs/agents/domain.md).
