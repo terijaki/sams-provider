@@ -4,10 +4,13 @@ Provider-owned read model and event-fed projections for volleyball data from SAM
 
 ## Runtime (clubs index)
 
-- Associations and clubs are discovered from the configured SAMS host (`getAssociations`, `getAllSportsclubs`) and cached in DynamoDB (730-day TTL).
-- Weekly clubs sync: coordinator refreshes associations, then async-invokes one worker per association.
+- Associations are refreshed weekly from the SAMS host (`getAssociations`) into DynamoDB (730-day TTL). Clubs are fetched live per association (`getAllSportsclubs`) and cached in DynamoDB.
+- **Tuesday 22:00 UTC:** `associations-sync` refreshes the association index from SAMS.
+- **Wednesday 02:00 UTC:** `clubs-sync-coordinator` fans out one `clubs-sync-worker` per **cached** association (Dynamo-driven, not live API list).
 - `clubUpdated` events are emitted only for registered clubs when projection data changes; index-only clubs stay silent on the bus.
 - Register CLI resolves clubs from the DynamoDB index only (no live SAMS calls).
+
+See [`docs/sync.md`](docs/sync.md) for schedules, flow diagrams, and sync meta keys.
 
 ## Language
 
