@@ -12,6 +12,7 @@ import { GitHubOidcStack } from "../lib/stacks/github-oidc";
 import { MediaStack } from "../lib/stacks/media";
 import { MonitoringStack } from "../lib/stacks/monitoring";
 import { SyncStack } from "../lib/stacks/sync";
+import { buildLambdaFunctionName } from "../lib/construct/sp-nodejs-function";
 
 const app = new cdk.App();
 
@@ -89,17 +90,25 @@ if (isShared) {
 
   if (deployMonitoring) {
     if (alertEmail) {
-      new MonitoringStack(app, stackName("MonitoringStack"), {
+      const monitoringStack = new MonitoringStack(app, stackName("MonitoringStack"), {
         ...commonStackProps,
         description: `Monitoring (${envLabel})`,
         alertEmail,
-        syncLambdas: [
-          syncStack.clubsSyncCoordinator,
-          syncStack.clubsSyncWorker,
-          syncStack.teamsSync,
-          syncStack.matchRefresh,
+        syncLambdaTargets: [
+          {
+            id: "ClubsSyncCoordinator",
+            functionName: buildLambdaFunctionName("clubs-sync-coordinator"),
+          },
+          {
+            id: "ClubsSyncWorker",
+            functionName: buildLambdaFunctionName("clubs-sync-worker"),
+          },
+          { id: "TeamsSync", functionName: buildLambdaFunctionName("teams-sync") },
+          { id: "MatchRefresh", functionName: buildLambdaFunctionName("match-refresh") },
         ],
       });
+      // Drop legacy SyncStack exports (e.g. ClubsSync) before SyncStack updates.
+      syncStack.addDependency(monitoringStack);
     } else if (isProd) {
       console.error("CDK_ALERT_EMAIL is required for production");
       process.exit(1);

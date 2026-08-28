@@ -97,6 +97,31 @@ export const matchBlockUpdatedPayloadSchema = z.object({
   matches: z.array(z.record(z.string(), z.unknown())),
 });
 
+export const leagueRankingEntrySchema = z.object({
+  rank: z.number().int(),
+  teamUuid: z.string().min(1),
+  teamName: z.string().min(1),
+  sportsclubUuid: z.string().min(1).optional(),
+  logoUrl: z.string().nullable().optional(),
+  matchesPlayed: z.number().int().nullable().optional(),
+  points: z.number().int().nullable().optional(),
+  scoreIncludingLosses: z.string().nullable().optional(),
+  wins: z.number().int().nullable().optional(),
+  losses: z.number().int().nullable().optional(),
+  setWins: z.number().int().nullable().optional(),
+  setLosses: z.number().int().nullable().optional(),
+  setDifference: z.number().int().nullable().optional(),
+  setRatio: z.union([z.number(), z.string()]).nullable().optional(),
+  ballWins: z.number().int().nullable().optional(),
+  ballLosses: z.number().int().nullable().optional(),
+  ballDifference: z.number().int().nullable().optional(),
+  ballRatio: z.union([z.number(), z.string()]).nullable().optional(),
+});
+
+export const leagueRankingProjectionSchema = z.object({
+  entries: z.array(leagueRankingEntrySchema),
+});
+
 export const leagueRankingUpdatedPayloadSchema = z.object({
   leagueUuid: z.string().min(1),
   seasonUuid: z.string().min(1),
@@ -105,7 +130,7 @@ export const leagueRankingUpdatedPayloadSchema = z.object({
   nextRefreshAfter: z.iso.datetime().nullable(),
   isStale: z.boolean(),
   sourceMatchBlockId: z.string().optional(),
-  entries: z.array(z.record(z.string(), z.unknown())),
+  entries: z.array(leagueRankingEntrySchema),
 });
 
 export const syncFailedPayloadSchema = z.object({

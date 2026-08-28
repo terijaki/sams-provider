@@ -26,24 +26,29 @@ describe("lambdaErrorAlarmId", () => {
 });
 
 describe("MonitoringStack", () => {
-  it("creates a unique error alarm for each nested sync Lambda", () => {
+  it("creates a unique error alarm for each sync Lambda by function name", () => {
     const app = new App();
-    const functions = new Stack(app, "SyncStack-Prod");
     const stack = new MonitoringStack(app, "MonitoringStack-Prod", {
       alertEmail: "ops@example.com",
       stackProps: { environment: "prod", branch: "main" },
-      syncLambdas: [
-        nestedFunction(functions, "ClubsSync", "sams-provider-clubs-sync-prod"),
-        nestedFunction(functions, "TeamsSync", "sams-provider-teams-sync-prod"),
-        nestedFunction(functions, "MatchRefresh", "sams-provider-match-refresh-prod"),
+      syncLambdaTargets: [
+        {
+          id: "ClubsSyncCoordinator",
+          functionName: "sams-provider-clubs-sync-coordinator-prod",
+        },
+        { id: "ClubsSyncWorker", functionName: "sams-provider-clubs-sync-worker-prod" },
+        { id: "TeamsSync", functionName: "sams-provider-teams-sync-prod" },
+        { id: "MatchRefresh", functionName: "sams-provider-match-refresh-prod" },
       ],
     });
 
     const template = Template.fromStack(stack);
-    template.resourceCountIs("AWS::CloudWatch::Alarm", 3);
+    template.resourceCountIs("AWS::CloudWatch::Alarm", 4);
     const alarmIds = Object.keys(template.findResources("AWS::CloudWatch::Alarm"));
-    expect(alarmIds.some((id) => id.startsWith("ClubsSyncErrors"))).toBe(true);
+    expect(alarmIds.some((id) => id.startsWith("ClubsSyncCoordinatorErrors"))).toBe(true);
+    expect(alarmIds.some((id) => id.startsWith("ClubsSyncWorkerErrors"))).toBe(true);
     expect(alarmIds.some((id) => id.startsWith("TeamsSyncErrors"))).toBe(true);
     expect(alarmIds.some((id) => id.startsWith("MatchRefreshErrors"))).toBe(true);
+    expect(JSON.stringify(template.toJSON())).not.toContain("Fn::ImportValue");
   });
 });
