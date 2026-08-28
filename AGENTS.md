@@ -42,11 +42,7 @@ Agent workflows live in `.agents/skills/`. Invoke them when the user names a ski
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues, and external pull requests are also treated as a triage request surface. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
-
-### Triage labels
-
-The triage workflow uses the canonical label vocabulary as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+Issues are tracked in GitHub Issues. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 
 ### Domain docs
 
