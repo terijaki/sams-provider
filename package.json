@@ -1,6 +1,6 @@
 {
   "name": "sams-provider",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Event-fed SAMS volleyball data provider",
   "homepage": "https://github.com/terijaki/sams-provider",
