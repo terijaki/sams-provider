@@ -79,10 +79,10 @@ Association names only update when SAMS includes the association during refresh.
 
 On a fresh DynamoDB table with no associations:
 
-1. **Prod:** run `associations-sync` once (manually or wait for Tuesday 22:00 UTC), then `clubs-sync-coordinator` fans out on the next Wednesday 02:00 UTC run.
-2. **Dev:** the clubs coordinator bootstraps automatically — if Dynamo is empty, it calls SAMS `getAssociations`, upserts the index, then fans out from Dynamo on the same run. No manual step for feature-branch deployments.
+1. Run `associations-sync` once (manually or wait for Tuesday 22:00 UTC).
+2. `clubs-sync-coordinator` fans out from whatever is in Dynamo on the next Wednesday 02:00 UTC run.
 
-If the coordinator still finds zero associations after bootstrap (or on prod with an empty table), it logs a warning and completes without invoking workers.
+**Prod** fails the clubs sync when the association index is empty (run `associations-sync` first). **Dev** completes successfully with zero workers so fresh feature deployments are not blocked before the first associations refresh.
 
 ## Sync meta job keys
 
