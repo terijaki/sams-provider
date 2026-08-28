@@ -32,7 +32,7 @@ export class MonitoringStack extends cdk.Stack {
     const widgets: cloudwatch.IWidget[] = [];
     for (const fn of props.syncLambdas) {
       const errors = fn.metricErrors({ period: cdk.Duration.minutes(5) });
-      const alarm = new cloudwatch.Alarm(this, `${fn.node.id}Errors`, {
+      const alarm = new cloudwatch.Alarm(this, lambdaErrorAlarmId(fn), {
         metric: errors,
         threshold: 1,
         evaluationPeriods: 1,
@@ -53,4 +53,16 @@ export class MonitoringStack extends cdk.Stack {
       widgets: [widgets],
     });
   }
+}
+
+/**
+ * CloudWatch alarm construct id for a Lambda.
+ *
+ * `SpNodejsFunction` wraps `NodejsFunction` as `"Function"`, so `fn.node.id`
+ * is the same for every sync job. Use the parent construct id instead.
+ */
+export function lambdaErrorAlarmId(fn: lambda.IFunction): string {
+  const parent = fn.node.scope;
+  const uniqueId = parent && parent !== fn.stack ? parent.node.id : fn.node.id;
+  return `${uniqueId}Errors`;
 }

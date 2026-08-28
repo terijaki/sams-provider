@@ -44,6 +44,14 @@ jobs:
       - name: CDK synth app stacks
         run: vp exec cdk synth
 
+      # PRs synth the feature-branch app (no Monitoring). Always synth prod too
+      # so MonitoringStack-Prod construct IDs are validated before merge.
+      - name: CDK synth prod app stacks
+        if: env.CDK_ENVIRONMENT != 'prod'
+        env:
+          CDK_ENVIRONMENT: prod
+        run: vp exec cdk synth
+
   deploy:
     name: Deploy CDK to AWS
     needs: verify
