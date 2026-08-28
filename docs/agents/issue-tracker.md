@@ -26,6 +26,24 @@ Public consumers request event delivery with the **Register as a consumer** temp
 
 Implemented today: `club` (`sams.club.updated`), `club-season-teams` (`sams.club-season-teams.updated`).
 
+## Multi-association
+
+| Issue                                                      | Title                                                        | Blocks   |
+| ---------------------------------------------------------- | ------------------------------------------------------------ | -------- |
+| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) | #13, #14 |
+
+SAMS host (`volleyball-baden.de`) ≠ association. Club index for all configured associations is required before ranking logo enrichment works for opponent teams.
+
+## Implementation order (handoff)
+
+1. **[#16](https://github.com/terijaki/sams-provider/issues/16)** — multi-association sync + register
+2. **[#13](https://github.com/terijaki/sams-provider/issues/13)** — league-ranking: team + `sportsclubUuid` + `logoUrl` per row (enrich from provider store; SAMS ranking API has no logos)
+3. **[#14](https://github.com/terijaki/sams-provider/issues/14)** — normalize `match-block` payload (shared match DTO)
+4. **[#12](https://github.com/terijaki/sams-provider/issues/12)** — `club-match-schedule` (reuse match DTO from #14)
+5. **[#10](https://github.com/terijaki/sams-provider/issues/10)** — first consumer registration (parallel when consumer SQS exists)
+
+GitHub dependencies: #13 → blocked by #16; #14 → blocked by #16; #12 → blocked by #14.
+
 ## Out of PRD v1 scope
 
 | Issue                                                      | Title                                  |
@@ -39,11 +57,7 @@ Implemented today: `club` (`sams.club.updated`), `club-season-teams` (`sams.club
 
 ## Remaining provider gaps (not yet filed)
 
-| Issue                                                      | Title                                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) |
-
-Also consider filing separately:
+Consider separate issues when tackling:
 
 - Publish `sams.sync.completed` / `sams.sync.failed` (status subscription)
 - Enforce adaptive refresh intervals (cache table cursors)
