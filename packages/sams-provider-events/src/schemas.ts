@@ -48,6 +48,57 @@ export const clubSeasonTeamsPayloadSchema = z.object({
   projectedAt: z.iso.datetime(),
 });
 
+export const rosterPlayerSchema = z.object({
+  uuid: z.string().min(1),
+  name: z.string().min(1),
+  jerseyNumber: z.number().int().optional(),
+  position: z.string().optional(),
+  portraitUrl: z.string().optional(),
+});
+
+export const rosterOfficialSchema = z.object({
+  uuid: z.string().min(1),
+  name: z.string().min(1),
+  role: z.string().optional(),
+});
+
+export const teamRosterTeamSchema = teamProjectionSchema.extend({
+  sportsclubUuid: z.string().min(1),
+});
+
+export const teamRosterEntrySchema = z.object({
+  team: teamRosterTeamSchema,
+  players: z.array(rosterPlayerSchema),
+  officials: z.array(rosterOfficialSchema),
+});
+
+export const teamRosterUpdatedPayloadSchema = z.object({
+  team: teamRosterTeamSchema,
+  season: z.object({
+    uuid: z.string().min(1),
+    name: z.string().min(1),
+    current: z.boolean(),
+  }),
+  players: z.array(rosterPlayerSchema),
+  officials: z.array(rosterOfficialSchema),
+  projectedAt: z.iso.datetime(),
+  cachedAt: z.iso.datetime(),
+  isStale: z.boolean(),
+});
+
+export const clubSeasonRostersPayloadSchema = z.object({
+  club: clubProjectionSchema,
+  season: z.object({
+    uuid: z.string().min(1),
+    name: z.string().min(1),
+    current: z.boolean(),
+  }),
+  rosters: z.array(teamRosterEntrySchema),
+  projectedAt: z.iso.datetime(),
+  cachedAt: z.iso.datetime(),
+  isStale: z.boolean(),
+});
+
 export const clubsSyncCompletedPayloadSchema = z.object({
   associationsInvoked: z.number().int().nonnegative(),
   associationUuids: z.array(z.string().min(1)),

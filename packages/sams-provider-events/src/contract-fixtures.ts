@@ -2,9 +2,11 @@ import { SamsEventType } from "./constants";
 import type {
   Club,
   ClubMatchSchedule,
+  ClubSeasonRosters,
   ClubSeasonTeams,
   LeagueRankingUpdate,
   MatchBlockUpdate,
+  TeamRosterUpdate,
 } from "./types";
 
 export const sampleClub: Club = {
@@ -28,6 +30,47 @@ export const sampleClubSeasonTeams: ClubSeasonTeams = {
     },
   ],
   projectedAt: "2026-08-27T12:00:00.000Z",
+};
+
+export const sampleTeamRosterUpdate: TeamRosterUpdate = {
+  team: {
+    uuid: "team-1",
+    name: "Example Club 1",
+    slug: "example-club-1",
+    sportsclubUuid: "club-1",
+    leagueUuid: "league-1",
+    leagueName: "Landesliga",
+    leagueHierarchyLevel: 3,
+  },
+  season: { uuid: "season-1", name: "2026/27", current: true },
+  players: [
+    {
+      uuid: "player-1",
+      name: "Jane Player",
+      jerseyNumber: 7,
+      position: "OH",
+      portraitUrl: "https://sams.example/portraits/player-1.jpg",
+    },
+  ],
+  officials: [{ uuid: "official-1", name: "Coach Example", role: "Coach" }],
+  projectedAt: "2026-08-27T12:00:00.000Z",
+  cachedAt: "2026-08-27T12:00:00.000Z",
+  isStale: false,
+};
+
+export const sampleClubSeasonRosters: ClubSeasonRosters = {
+  club: sampleClub,
+  season: { uuid: "season-1", name: "2026/27", current: true },
+  rosters: [
+    {
+      team: sampleTeamRosterUpdate.team,
+      players: sampleTeamRosterUpdate.players,
+      officials: sampleTeamRosterUpdate.officials,
+    },
+  ],
+  projectedAt: "2026-08-27T12:00:00.000Z",
+  cachedAt: "2026-08-27T12:00:00.000Z",
+  isStale: false,
 };
 
 export const sampleLeagueRankingUpdate: LeagueRankingUpdate = {
@@ -104,6 +147,8 @@ export const sampleClubMatchSchedule: ClubMatchSchedule = {
 export const contractPayloadFixtures = {
   [SamsEventType.clubUpdated]: sampleClub,
   [SamsEventType.clubSeasonTeamsUpdated]: sampleClubSeasonTeams,
+  [SamsEventType.clubSeasonRostersUpdated]: sampleClubSeasonRosters,
+  [SamsEventType.teamRosterUpdated]: sampleTeamRosterUpdate,
   [SamsEventType.clubMatchScheduleUpdated]: sampleClubMatchSchedule,
   [SamsEventType.matchBlockUpdated]: sampleMatchBlockUpdate,
   [SamsEventType.leagueRankingUpdated]: sampleLeagueRankingUpdate,

@@ -13,6 +13,10 @@ export const SamsEventType = {
   clubUpdated: "sams.club.updated",
   /** Full current-season team list for a registered club. */
   clubSeasonTeamsUpdated: "sams.club-season-teams.updated",
+  /** Full current-season roster list for a registered club. */
+  clubSeasonRostersUpdated: "sams.club-season-rosters.updated",
+  /** Roster for one team when squad data changes. */
+  teamRosterUpdated: "sams.team-roster.updated",
   /** Registered club match schedule in the provider rolling window. */
   clubMatchScheduleUpdated: "sams.club-match-schedule.updated",
   /** Match block refresh with normalized match details. */
@@ -38,6 +42,8 @@ export const SAMS_EVENT_TYPE_VALUES = [
   SamsEventType.clubUpdated,
   SamsEventType.teamsSyncCompleted,
   SamsEventType.clubSeasonTeamsUpdated,
+  SamsEventType.clubSeasonRostersUpdated,
+  SamsEventType.teamRosterUpdated,
   SamsEventType.clubMatchScheduleUpdated,
   SamsEventType.matchBlockUpdated,
   SamsEventType.matchesUpdated,

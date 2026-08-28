@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   clubMatchSchedulePayloadSchema,
   clubProjectionSchema,
+  clubSeasonRostersPayloadSchema,
   clubSeasonTeamsPayloadSchema,
   clubsSyncCompletedPayloadSchema,
   EVENT_SCHEMA_VERSION,
@@ -12,6 +13,7 @@ import {
   SamsEventType,
   syncFailedPayloadSchema,
   teamsSyncCompletedPayloadSchema,
+  teamRosterUpdatedPayloadSchema,
   type SamsEvent,
   type SamsEventTypeName,
 } from "sams-provider-events";
@@ -75,6 +77,24 @@ function buildSamsEvent(args: {
       return {
         ...envelopeBase,
         type: SamsEventType.clubSeasonTeamsUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.clubSeasonRostersUpdated: {
+      const payload = clubSeasonRostersPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.clubSeasonRostersUpdated,
+        snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
+        payload,
+      };
+    }
+    case SamsEventType.teamRosterUpdated: {
+      const payload = teamRosterUpdatedPayloadSchema.parse(args.payload);
+      return {
+        ...envelopeBase,
+        type: SamsEventType.teamRosterUpdated,
         snapshotVersion: args.snapshotVersion ?? snapshotVersion(payload),
         payload,
       };

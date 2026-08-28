@@ -123,6 +123,55 @@ export interface ClubSeasonTeams {
   projectedAt: string;
 }
 
+/** Player on a team roster. */
+export interface RosterPlayer {
+  uuid: string;
+  name: string;
+  jerseyNumber?: number;
+  position?: string;
+  portraitUrl?: string;
+}
+
+/** Official on a team roster. */
+export interface RosterOfficial {
+  uuid: string;
+  name: string;
+  role?: string;
+}
+
+/** Team metadata included in roster projections. */
+export interface TeamRosterTeam extends Team {
+  sportsclubUuid: string;
+}
+
+/** One team's roster within a club-scoped snapshot. */
+export interface TeamRosterEntry {
+  team: TeamRosterTeam;
+  players: RosterPlayer[];
+  officials: RosterOfficial[];
+}
+
+/** Roster snapshot for a single team. */
+export interface TeamRosterUpdate {
+  team: TeamRosterTeam;
+  season: Season;
+  players: RosterPlayer[];
+  officials: RosterOfficial[];
+  projectedAt: string;
+  cachedAt: string;
+  isStale: boolean;
+}
+
+/** Full roster list for a registered club in the current season. */
+export interface ClubSeasonRosters {
+  club: Club;
+  season: Season;
+  rosters: TeamRosterEntry[];
+  projectedAt: string;
+  cachedAt: string;
+  isStale: boolean;
+}
+
 /** Rolling match schedule for a registered club. */
 export interface ClubMatchSchedule {
   club: Club;
@@ -252,6 +301,18 @@ export type ClubSeasonTeamsUpdatedEvent = SamsEventBase & {
   payload: ClubSeasonTeams;
 };
 
+/** Full current-season roster list for a registered club. */
+export type ClubSeasonRostersUpdatedEvent = SamsEventBase & {
+  type: "sams.club-season-rosters.updated";
+  payload: ClubSeasonRosters;
+};
+
+/** Roster for one team when squad data changes. */
+export type TeamRosterUpdatedEvent = SamsEventBase & {
+  type: "sams.team-roster.updated";
+  payload: TeamRosterUpdate;
+};
+
 /** Registered club match schedule in the provider rolling window. */
 export type ClubMatchScheduleUpdatedEvent = SamsEventBase & {
   type: "sams.club-match-schedule.updated";
@@ -307,6 +368,8 @@ export type SyncFailedEvent = SamsEventBase & {
 export type SamsEvent =
   | ClubUpdatedEvent
   | ClubSeasonTeamsUpdatedEvent
+  | ClubSeasonRostersUpdatedEvent
+  | TeamRosterUpdatedEvent
   | ClubMatchScheduleUpdatedEvent
   | MatchBlockUpdatedEvent
   | LeagueRankingUpdatedEvent
@@ -320,6 +383,8 @@ export type SamsEvent =
 export type SamsEventPayloadByType = {
   "sams.club.updated": Club;
   "sams.club-season-teams.updated": ClubSeasonTeams;
+  "sams.club-season-rosters.updated": ClubSeasonRosters;
+  "sams.team-roster.updated": TeamRosterUpdate;
   "sams.club-match-schedule.updated": ClubMatchSchedule;
   "sams.match-block.updated": MatchBlockUpdate;
   "sams.league-ranking.updated": LeagueRankingUpdate;
