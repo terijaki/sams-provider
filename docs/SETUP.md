@@ -56,7 +56,7 @@ This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if y
 
 New repositories use immutable owner/repo IDs in the `sub` claim. The shared OIDC stack trusts both formats via `StringLike`.
 
-`GitHubActionsCDKRole` may assume the same-account CDK bootstrap roles (`sts:AssumeRole` + `sts:TagSession`). `--trust` is only for **cross-account** bootstrap (another AWS account ID) and is not needed here. After changing the OIDC stack, redeploy it locally (`cdk:deploy:shared`) — CI never deploys shared stacks.
+`GitHubActionsCDKRole` may assume the same-account CDK bootstrap roles (`sts:AssumeRole` + `sts:TagSession`). `--trust` is only for **cross-account** bootstrap (another AWS account ID) and is not needed here. First create of the OIDC role is local. After that, prod updates shared stacks on merge to `main`. The **dev** account still needs a local `cdk:deploy:shared` so feature branches cannot overwrite the account singletons.
 
 4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
 5. In **each** environment, set the Actions **secret** `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same secret name in both environments; different values.
@@ -93,7 +93,7 @@ varlock run -- vp run cdk:deploy:shared       # OIDC + budget (dev account)
 varlock run -- vp run cdk:deploy:shared:prod  # OIDC + budget (prod account)
 ```
 
-`cdk deploy --all` never includes shared stacks (`GitHubOidcStack`, `BudgetStack`). Destroy workflows must not include them either.
+`cdk deploy --all` never includes shared stacks (`GitHubOidcStack`, `BudgetStack`). Destroy workflows must not include them either. Prod CI deploys them in a separate `CDK_STACK_GROUP=shared` step after the app deploy.
 
 ## Operator registration
 
@@ -107,10 +107,10 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012
 
 ## GitHub CI
 
-| Workflow                | When                                                                 | What                                                                                                                                                                                                                                         |
-| ----------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Verify and Deploy`     | Pull request (feature branches), push to `main`, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (app stacks only). **Deploy CDK to AWS:** runs only after Verify passes — dev on pull requests, prod on push to `main`. Uses GitHub Environment `dev` or `prod`. Never deploys shared stacks. |
-| `Destroy Branch Stacks` | PR closed or branch deleted                                          | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                |
+| Workflow                | When                                                                 | What                                                                                                                                                                                                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Verify and Deploy`     | Pull request (feature branches), push to `main`, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (feature-branch app, prod app, and shared). **Deploy CDK to AWS:** runs only after Verify passes — app stacks to dev on pull requests, app + shared stacks to prod on push to `main`. Uses GitHub Environment `dev` or `prod`. Feature-branch deploys never include shared stacks. |
+| `Destroy Branch Stacks` | PR closed or branch deleted                                          | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                                                                                                     |
 
 Feature-branch deploys are isolated by branch slug (stacks, DynamoDB, S3, EventBridge, SSM under `/sams-provider/dev/<branch>/sync/...`). The register CLI writes shared `/sams-provider/{env}/sync/...` paths on the main dev or prod bus (`prod` by default; `dev` for internal tests).
 
