@@ -9,7 +9,12 @@
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { GITHUB, githubActionsOidcTrustSubjects, parseGitHubEnvironment } from "@utils/github-oidc";
+import {
+  GITHUB,
+  githubActionsOidcTrustSubjects,
+  cdkBootstrapRoleArns,
+  parseGitHubEnvironment,
+} from "@utils/github-oidc";
 
 const GITHUB_ACTIONS_MANAGED_POLICIES = [
   "AWSCloudFormationFullAccess",
@@ -60,6 +65,14 @@ export class GitHubOidcStack extends cdk.Stack {
     for (const policyName of GITHUB_ACTIONS_MANAGED_POLICIES) {
       this.role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(policyName));
     }
+
+    this.role.addToPolicy(
+      new iam.PolicyStatement({
+        sid: "AssumeCdkBootstrapRoles",
+        actions: ["sts:AssumeRole", "sts:TagSession"],
+        resources: cdkBootstrapRoleArns(cdk.Stack.of(this).account, cdk.Stack.of(this).region),
+      }),
+    );
 
     new cdk.CfnOutput(this, "RoleArn", {
       value: this.role.roleArn,

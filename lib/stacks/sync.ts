@@ -34,7 +34,7 @@ export class SyncStack extends cdk.Stack {
     const environment = props.stackProps?.environment || "dev";
     const branch = props.stackProps?.branch || "";
     const branchSuffix = computeResourceBranchSuffix(environment, branch);
-    const prefix = ssmPrefix(environment);
+    const prefix = ssmPrefix(environment, branch);
     const samsDataTable = dynamodb.Table.fromTableName(
       this,
       "SamsDataTable",

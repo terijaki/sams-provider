@@ -5,6 +5,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import type { Construct } from "constructs";
+import { computeResourceBranchSuffix } from "../db/env";
 
 interface MonitoringStackProps extends cdk.StackProps {
   stackProps?: {
@@ -20,8 +21,11 @@ export class MonitoringStack extends cdk.Stack {
     super(scope, id, props);
 
     const environment = props.stackProps?.environment || "dev";
+    const branch = props.stackProps?.branch || "";
+    const branchSuffix = computeResourceBranchSuffix(environment, branch);
+    const resourceLabel = `sams-provider-${environment}${branchSuffix}`;
     const topic = new sns.Topic(this, "AlertTopic", {
-      displayName: `sams-provider-${environment}-alerts`,
+      displayName: `${resourceLabel}-alerts`,
     });
     topic.addSubscription(new snsSubscriptions.EmailSubscription(props.alertEmail));
 
@@ -45,7 +49,7 @@ export class MonitoringStack extends cdk.Stack {
     }
 
     new cloudwatch.Dashboard(this, "Dashboard", {
-      dashboardName: `sams-provider-${environment}`,
+      dashboardName: resourceLabel,
       widgets: [widgets],
     });
   }

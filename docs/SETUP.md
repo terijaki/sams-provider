@@ -56,6 +56,8 @@ This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if y
 
 New repositories use immutable owner/repo IDs in the `sub` claim. The shared OIDC stack trusts both formats via `StringLike`.
 
+`GitHubActionsCDKRole` may assume the same-account CDK bootstrap roles (`sts:AssumeRole` + `sts:TagSession`). `--trust` is only for **cross-account** bootstrap (another AWS account ID) and is not needed here. After changing the OIDC stack, redeploy it locally (`cdk:deploy:shared`) — CI never deploys shared stacks.
+
 4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
 5. In **each** environment, set the Actions **secret** `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same secret name in both environments; different values.
 6. Create the SecureString in **each** account (same name; account isolation separates them):
@@ -67,7 +69,7 @@ aws ssm put-parameter \
   --value "$SAMS_API_KEY"
 ```
 
-7. Require the GitHub check named **verify** on `main` before merge.
+7. Require the GitHub check named **Verify** on `main` before merge.
 
 If the OIDC provider already exists in an account (same URL), deploy with:
 
@@ -103,15 +105,22 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012
 
 ## GitHub CI
 
-| Workflow     | When                           | What                                                                                                                                                         |
-| ------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CI`         | Every pull request and push    | `vp check`, `vp test`, `cdk synth` (app stacks + `CDK_STACK_GROUP=shared`) — required before merge                                                           |
-| `CDK Deploy` | `main` and `workflow_dispatch` | Uses GitHub Environment `prod` (`main`) or `dev` (everything else). Assumes `secrets.AWS_ROLE_ARN` from that environment. Does **not** deploy shared stacks. |
+| Workflow                | When                                                                 | What                                                                                                                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Verify and Deploy`     | Pull request (feature branches), push to `main`, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (app stacks only). **Deploy CDK to AWS:** runs only after Verify passes — dev on pull requests, prod on push to `main`. Uses GitHub Environment `dev` or `prod`. Never deploys shared stacks. |
+| `Destroy Branch Stacks` | PR closed or branch deleted                                          | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                |
+
+Feature-branch deploys are isolated by branch slug (stacks, DynamoDB, S3, EventBridge, SSM under `/sams-provider/dev/<branch>/sync/...`). The register CLI still writes shared `/sams-provider/{env}/sync/...` paths for operator use on the main dev/prod buses.
+
+Direct pushes to `main` are blocked; prod deploy runs on the `push` event from a merged PR. Feature branches only trigger via `pull_request` (not `push`) to avoid duplicate workflow runs when both would fire on the same commit.
+
+Require status check **Verify** on `main` before merge.
 
 No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in deploy jobs by Varlock after OIDC.
+
+**Branch name truncation:** sanitized branch slugs are capped at 20 characters. Two long branch names with the same prefix can collide.
 
 ## Tickets left for a later session
 
 - EventBridge → consumer SQS end-to-end (consumer queues belong in the consumer CDK)
 - Consumer event processors (separate repositories; no issues filed yet)
-- Require GitHub check **verify** on `main`

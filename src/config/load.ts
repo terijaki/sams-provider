@@ -8,15 +8,25 @@ import {
   matchRefreshPolicySchema,
   providerRuntimeConfigSchema,
   samsApiKeyParameterPath,
-  ssmParameterPath,
   type ProviderRuntimeConfig,
 } from "./schema";
+
+type SyncParameterKey =
+  | "sync/associations"
+  | "sync/clubs"
+  | "sync/consumers"
+  | "sync/match-refresh-policy";
+
+function syncParameterPath(ssmPrefix: string, key: SyncParameterKey): string {
+  return `${ssmPrefix}/${key}`;
+}
 
 let cached: { loadedAt: number; value: ProviderRuntimeConfig } | undefined;
 const CACHE_MS = 30_000;
 
 export async function loadProviderRuntimeConfig(args: {
   environment: string;
+  ssmPrefix: string;
   ssm: SSMClient;
   now?: number;
 }): Promise<ProviderRuntimeConfig> {
@@ -27,10 +37,10 @@ export async function loadProviderRuntimeConfig(args: {
 
   const [apiKey, associationsRaw, clubsRaw, consumersRaw, policyRaw] = await Promise.all([
     getParameter(args.ssm, samsApiKeyParameterPath(), true),
-    getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/associations")),
-    getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/clubs")),
-    getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/consumers")),
-    getOptionalParameter(args.ssm, ssmParameterPath(args.environment, "sync/match-refresh-policy")),
+    getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/associations")),
+    getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/clubs")),
+    getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/consumers")),
+    getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/match-refresh-policy")),
   ]);
 
   const value = providerRuntimeConfigSchema.parse({

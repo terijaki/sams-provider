@@ -1,0 +1,62 @@
+name: Destroy Branch Stacks
+
+on:
+  pull_request:
+    types: [closed]
+  delete:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy CDK Branch Stacks
+    if: >
+      github.actor != 'dependabot[bot]' &&
+      (
+        (github.event_name == 'pull_request' && github.head_ref != 'main') ||
+        (github.event_name == 'delete' && github.event.ref != 'main' && github.event.ref != 'refs/heads/main')
+      )
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      CDK_ENVIRONMENT: dev
+      CDK_STACK_GROUP: app
+      CDK_BRANCH_OVERWRITE: ${{ github.event_name == 'pull_request' && github.head_ref || github.event.ref }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "25"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Require AWS role ARN
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::GitHub Environment secret AWS_ROLE_ARN is missing on the dev environment."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: CDK Destroy branch stacks
+        run: vp exec cdk destroy --all --force
+
+      - name: Add destroy summary
+        run: |
+          echo "## Branch stack cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Destroyed app stacks for branch \`${{ env.CDK_BRANCH_OVERWRITE }}\` in dev." >> $GITHUB_STEP_SUMMARY

@@ -45,4 +45,29 @@ describe("GitHubOidcStack", () => {
     expect(documents.some((document) => document.includes("environment:dev"))).toBe(true);
     expect(documents.some((document) => document.includes("environment:prod"))).toBe(false);
   });
+
+  it("allows assuming CDK bootstrap deploy and asset roles", () => {
+    const app = new App();
+    const stack = new GitHubOidcStack(app, "GitHubOidcStack-Dev", {
+      env: { account: "449952321849", region: "eu-central-1" },
+      stackProps: { environment: "dev" },
+    });
+    const template = Template.fromStack(stack);
+
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "AssumeCdkBootstrapRoles",
+            Action: ["sts:AssumeRole", "sts:TagSession"],
+            Resource: [
+              "arn:aws:iam::449952321849:role/cdk-hnb659fds-deploy-role-449952321849-eu-central-1",
+              "arn:aws:iam::449952321849:role/cdk-hnb659fds-file-publishing-role-449952321849-eu-central-1",
+              "arn:aws:iam::449952321849:role/cdk-hnb659fds-lookup-role-449952321849-eu-central-1",
+            ],
+          }),
+        ]),
+      },
+    });
+  });
 });
