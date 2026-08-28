@@ -4,11 +4,10 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { EventBridgeClient, PutRuleCommand, PutTargetsCommand } from "@aws-sdk/client-eventbridge";
 import { AWS, CONSUMER_QUEUE_NAME } from "@project.config";
 import { computeSamsDataTableName } from "@lib/db/env";
-import { SamsAssociationsRepository } from "@lib/db/repositories/sams-associations-repository";
 import { SamsClubsRepository } from "@lib/db/repositories/sams-clubs-repository";
+import type { SamsClubInput } from "@lib/db/schemas";
 import { SAMS_ENTITY_TTL_DAYS } from "../config/constants";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
-import { getSamsClient } from "@utils/sams-client";
 import { slugify } from "@utils/slugify";
 import { providerEventBusArn, type ProviderEnvironment } from "@utils/provider-event-bus";
 import {
@@ -19,15 +18,15 @@ import {
   type ConsumerConfig,
 } from "../config/schema";
 import { EventType } from "../events/schemas";
-import { listAllAssociations } from "../sams/list-associations";
-import { resolveAssociationName } from "../sams/resolve-association";
-import { unwrapSamsResult } from "../sams/result";
 
 export const REGISTER_USAGE =
   'Usage: sams-provider register --club "Club Name" --account 123456789012';
 
 /** Public consumers are registered on prod. `dev` is maintainer testing only. */
 export const DEFAULT_REGISTER_ENVIRONMENT = "prod" as const;
+
+const INDEX_MISS_HINT =
+  "Run the weekly clubs sync (or invoke clubs-sync-coordinator) so the provider index is populated.";
 
 export type RegisterArgs = {
   club: string;
@@ -44,36 +43,6 @@ export type ResolvedClub = {
   name: string;
   associationUuid?: string;
   associationName?: string;
-};
-
-export type RegisterClubResolverSams = {
-  getSportsclub(args: { path: { uuid: string } }): Promise<{
-    data?: {
-      uuid?: string;
-      name?: string;
-      associationUuid?: string | null;
-    };
-    error?: unknown;
-  }>;
-  getAllSportsclubs(args: { query: { association: string; page: number; size: number } }): Promise<{
-    data?: {
-      content?: Array<{
-        uuid?: string;
-        name?: string;
-        associationUuid?: string | null;
-      }>;
-      last?: boolean;
-    };
-    error?: unknown;
-  }>;
-  getAssociations(args: { query: { page: number; size: number } }): Promise<{
-    data?: { content?: Array<{ name?: string; uuid?: string }>; last?: boolean };
-    error?: unknown;
-  }>;
-  getAssociationByUuid(args: { path: { uuid: string } }): Promise<{
-    data?: { name?: string; uuid?: string };
-    error?: unknown;
-  }>;
 };
 
 function readFlag(argv: string[], name: string): string | undefined {
@@ -119,14 +88,10 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
   const tableName = args.tableName ?? computeSamsDataTableName(environment, "");
   const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: AWS.region }));
   const clubsRepo = new SamsClubsRepository(documentClient, tableName);
-  const associationsRepo = new SamsAssociationsRepository(documentClient, tableName);
 
   const ssm = new SSMClient({ region: AWS.region });
-  const sams = getSamsClient();
   const resolvedClub = await resolveClub({
-    sams,
     clubsRepo,
-    associationsRepo,
     nameOrUuid: args.club,
   });
   const consumerId =
@@ -183,101 +148,52 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
 }
 
 export async function resolveClub(args: {
-  sams: RegisterClubResolverSams;
-  clubsRepo: Pick<SamsClubsRepository, "getByNameSlug">;
-  associationsRepo: Pick<SamsAssociationsRepository, "listAll">;
+  clubsRepo: Pick<SamsClubsRepository, "getById" | "listAll">;
   nameOrUuid: string;
 }): Promise<ResolvedClub> {
   if (/^[0-9a-f-]{36}$/i.test(args.nameOrUuid)) {
-    const { data, error } = unwrapSamsResult(
-      await args.sams.getSportsclub({ path: { uuid: args.nameOrUuid } }),
-    );
-    if (error || !data?.uuid || !data.name) {
-      throw new Error(`Club UUID ${args.nameOrUuid} was not found`);
-    }
-    const associationUuid = data.associationUuid ?? undefined;
-    const associationName = associationUuid
-      ? await resolveAssociationName(args.sams, associationUuid)
-      : undefined;
-    return {
-      uuid: data.uuid,
-      name: data.name,
-      ...(associationUuid ? { associationUuid } : {}),
-      ...(associationName ? { associationName } : {}),
-    };
-  }
-
-  const indexed = await args.clubsRepo.getByNameSlug(slugify(args.nameOrUuid));
-  if (indexed) {
-    return {
-      uuid: indexed.sportsclubUuid,
-      name: indexed.name,
-      ...(indexed.associationUuid ? { associationUuid: indexed.associationUuid } : {}),
-      ...(indexed.associationName ? { associationName: indexed.associationName } : {}),
-    };
-  }
-
-  const cachedAssociations = await args.associationsRepo.listAll();
-  const associations =
-    cachedAssociations.length > 0
-      ? cachedAssociations.map((association) => ({
-          uuid: association.uuid,
-          name: association.name,
-        }))
-      : await listAllAssociations(args.sams);
-
-  if (associations.length === 0) {
-    throw new Error(
-      "No associations in the provider index yet. Run clubs sync or pass the club UUID.",
-    );
-  }
-
-  const matches: ResolvedClub[] = [];
-  const wanted = slugify(args.nameOrUuid);
-
-  for (const association of associations) {
-    let page = 0;
-    let hasMore = true;
-    while (hasMore) {
-      const { data, error } = unwrapSamsResult(
-        await args.sams.getAllSportsclubs({
-          query: { association: association.uuid, page, size: 100 },
-        }),
+    const indexed = await args.clubsRepo.getById(args.nameOrUuid);
+    if (!indexed) {
+      throw new Error(
+        `Club UUID ${args.nameOrUuid} was not found in the provider index. ${INDEX_MISS_HINT}`,
       );
-      if (error) {
-        throw new Error("Failed to search clubs in SAMS");
-      }
-      for (const club of data?.content ?? []) {
-        if (club.uuid && club.name && slugify(club.name) === wanted) {
-          matches.push({
-            uuid: club.uuid,
-            name: club.name,
-            associationUuid: association.uuid,
-            associationName: association.name,
-          });
-        }
-      }
-      page += 1;
-      hasMore = data?.last !== true;
     }
+    return clubFromIndex(indexed);
   }
+
+  const wanted = slugify(args.nameOrUuid);
+  const matches = (await args.clubsRepo.listAll()).filter((club) => club.nameSlug === wanted);
 
   if (matches.length === 0) {
-    throw new Error(`Club "${args.nameOrUuid}" was not found`);
+    throw new Error(
+      `Club "${args.nameOrUuid}" was not found in the provider index. ${INDEX_MISS_HINT}`,
+    );
   }
   if (matches.length > 1) {
     const details = matches
       .map(
-        (item) => `${item.name} (${item.uuid}, ${item.associationName ?? "unknown association"})`,
+        (item) =>
+          `${item.name} (${item.sportsclubUuid}, ${item.associationName ?? "unknown association"})`,
       )
       .join("; ");
     throw new Error(`Club "${args.nameOrUuid}" is ambiguous (${details}). Pass the club UUID.`);
   }
   const match = matches[0];
   if (!match) {
-    throw new Error(`Club "${args.nameOrUuid}" was not found`);
+    throw new Error(
+      `Club "${args.nameOrUuid}" was not found in the provider index. ${INDEX_MISS_HINT}`,
+    );
   }
-  return match;
+  return clubFromIndex(match);
+}
+
+function clubFromIndex(club: SamsClubInput): ResolvedClub {
+  return {
+    uuid: club.sportsclubUuid,
+    name: club.name,
+    ...(club.associationUuid ? { associationUuid: club.associationUuid } : {}),
+    ...(club.associationName ? { associationName: club.associationName } : {}),
+  };
 }
 
 async function upsertClubStub(args: {

@@ -50,76 +50,77 @@ describe("parseRegisterArgs", () => {
 });
 
 describe("resolveClub", () => {
-  const associationsRepo = {
-    listAll: async () => [],
-  };
-  const clubsRepo = {
-    getByNameSlug: async () => null,
+  const clubUuid = "22222222-2222-4222-8222-222222222222";
+  const clubRow = {
+    sportsclubUuid: clubUuid,
+    type: "club" as const,
+    name: "Other Club",
+    nameSlug: "other-club",
+    associationUuid: "assoc-2",
+    associationName: "Assoc Two",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastSyncedAt: "2026-01-01T00:00:00.000Z",
+    source: "sams" as const,
+    ttl: 1,
   };
 
-  it("resolves a club name from the DynamoDB index when present", async () => {
-    const indexedClubsRepo = {
-      getByNameSlug: async (slug: string) =>
-        slug === "other-club"
-          ? {
-              sportsclubUuid: "club-2",
-              type: "club" as const,
-              name: "Other Club",
-              nameSlug: "other-club",
-              associationUuid: "assoc-2",
-              associationName: "Assoc Two",
-              updatedAt: "2026-01-01T00:00:00.000Z",
-              lastSyncedAt: "2026-01-01T00:00:00.000Z",
-              source: "sams" as const,
-              ttl: 1,
-            }
-          : null,
-    };
-
+  it("resolves a club name from the provider index", async () => {
     const club = await resolveClub({
-      sams: {
-        getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
-        getAllSportsclubs: async () => ({ data: { content: [], last: true }, error: undefined }),
-        getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
-        getAssociationByUuid: async () => ({ data: undefined, error: undefined }),
+      clubsRepo: {
+        getById: async () => null,
+        listAll: async () => [clubRow],
       },
-      clubsRepo: indexedClubsRepo,
-      associationsRepo,
       nameOrUuid: "Other Club",
     });
 
     expect(club).toEqual({
-      uuid: "club-2",
+      uuid: clubUuid,
       name: "Other Club",
       associationUuid: "assoc-2",
       associationName: "Assoc Two",
     });
   });
 
-  it("falls back to SAMS when the index misses", async () => {
-    const sams = {
-      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
-      getAssociationByUuid: async () => ({ data: undefined, error: undefined }),
-      getAssociations: async () => ({
-        data: { content: [{ uuid: "assoc-2", name: "Assoc Two" }], last: true },
-        error: undefined,
-      }),
-      getAllSportsclubs: async () => ({
-        data: {
-          content: [{ uuid: "club-2", name: "Other Club", associationUuid: "assoc-2" }],
-          last: true,
-        },
-        error: undefined,
-      }),
-    };
-
+  it("resolves a club UUID from the provider index", async () => {
     const club = await resolveClub({
-      sams,
-      clubsRepo,
-      associationsRepo,
-      nameOrUuid: "Other Club",
+      clubsRepo: {
+        getById: async (uuid) => (uuid === clubUuid ? clubRow : null),
+        listAll: async () => [],
+      },
+      nameOrUuid: clubUuid,
     });
 
-    expect(club.uuid).toBe("club-2");
+    expect(club.uuid).toBe(clubUuid);
+  });
+
+  it("reports ambiguity from the index without calling SAMS", async () => {
+    await expect(
+      resolveClub({
+        clubsRepo: {
+          getById: async () => null,
+          listAll: async () => [
+            clubRow,
+            {
+              ...clubRow,
+              sportsclubUuid: "11111111-1111-4111-8111-111111111111",
+              associationUuid: "assoc-3",
+            },
+          ],
+        },
+        nameOrUuid: "Other Club",
+      }),
+    ).rejects.toThrow('Club "Other Club" is ambiguous');
+  });
+
+  it("fails when the club is missing from the index", async () => {
+    await expect(
+      resolveClub({
+        clubsRepo: {
+          getById: async () => null,
+          listAll: async () => [],
+        },
+        nameOrUuid: "Missing Club",
+      }),
+    ).rejects.toThrow("was not found in the provider index");
   });
 });

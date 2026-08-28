@@ -4,7 +4,7 @@ Public consumers are registered **only** on the production provider account (`55
 
 `--environment dev` is for **internal testing** (a maintainer wiring a throwaway queue to the dev bus). Do not register a public club on dev.
 
-The CLI resolves the SAMS club, stores the subscription in SSM, and wires EventBridge to the consumer queue. It does not create queues.
+The CLI resolves the club from the provider index, stores the subscription in SSM, and wires EventBridge to the consumer queue. It does not create queues.
 
 Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `src/cli/register.ts`.
 
@@ -12,7 +12,7 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 
 - Provider stacks already deployed in the account you are targeting (`DataStack`, `EventStack`, `SyncStack`, …)
 - AWS credentials for that **provider** account (prod for real consumers)
-- `SAMS_API_KEY` available to the local process (Varlock / `.env.local`)
+- `SAMS_API_KEY` is **not** required for register (index-only lookup). Sync jobs still need it in the provider account.
 - Consumer already deployed an SQS queue in `eu-central-1` via **their** CDK. Use the queue ARN from the registration issue (`--queue-arn`).
 - Queue policy allowing `events.amazonaws.com` to `sqs:SendMessage`, conditioned on the bus you are writing to
 
@@ -56,7 +56,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 
 ## What it writes
 
-1. **Resolves the club** from the provider DynamoDB club index when possible (weekly clubs sync), otherwise from SAMS across cached associations. Name lookup is case-insensitive via slug; pass the UUID when ambiguous.
+1. **Resolves the club** from the provider DynamoDB club index only (no live SAMS calls). Name lookup is case-insensitive via slug; pass the UUID when ambiguous. Run clubs sync first if the club is not indexed yet.
 2. **DynamoDB** provider data table — club stub with `associationUuid` and name so teams sync can scope leagues before the next clubs sync.
 3. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 4. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
@@ -70,16 +70,14 @@ Deploy the consumer queue **before** running this CLI. EventBridge `PutTargets` 
 
 ## Failures
 
-| Symptom                                   | Likely cause                                            |
-| ----------------------------------------- | ------------------------------------------------------- |
-| Club was not found                        | Name not in index yet; try UUID or run clubs sync first |
-| Club is ambiguous                         | Same slug in multiple associations; pass the UUID       |
-| Club UUID was not found                   | Wrong UUID or SAMS key/environment                      |
-| No associations in the provider index yet | Run clubs sync or pass the club UUID                    |
-| Failed to search clubs in SAMS            | API key missing or SAMS unreachable                     |
-| `--account` must be 12 digits             | Account ID is missing digits or has extra characters    |
-| SSM / EventBridge access denied           | Wrong credentials (must be the provider account)        |
-| Failed to wire EventBridge                | Queue missing, wrong ARN, or missing SQS policy         |
-| Queue never receives events               | Queue missing, wrong account/ARN, or missing SQS policy |
+| Symptom                         | Likely cause                                            |
+| ------------------------------- | ------------------------------------------------------- |
+| Club was not found              | Club not in provider index; run clubs sync first        |
+| Club is ambiguous               | Same slug in multiple associations; pass the UUID       |
+| Club UUID was not found         | UUID not in provider index; run clubs sync first        |
+| `--account` must be 12 digits   | Account ID is missing digits or has extra characters    |
+| SSM / EventBridge access denied | Wrong credentials (must be the provider account)        |
+| Failed to wire EventBridge      | Queue missing, wrong ARN, or missing SQS policy         |
+| Queue never receives events     | Queue missing, wrong account/ARN, or missing SQS policy |
 
 Stdout is JSON with the persisted `club` and `consumer` records on success.
