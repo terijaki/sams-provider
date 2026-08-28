@@ -1,6 +1,6 @@
-# sams-provider
+# Maintainer setup
 
-Event-fed SAMS volleyball data provider.
+Local toolchain, AWS accounts, and CI for people who operate this repository. Consumer-facing registration lives in the [root README](../README.md).
 
 ## Prerequisites
 
@@ -24,10 +24,10 @@ Runtime Lambdas do **not** use this file. They read `/sams-provider/sams/api-key
 
 ## AWS accounts
 
-| Environment | Account ID     | Purpose     |
-| ----------- | -------------- | ----------- |
-| dev         | `449952321849` | Development |
-| prod        | `550271577754` | Production  |
+| Environment | Account ID     | Purpose                                                      |
+| ----------- | -------------- | ------------------------------------------------------------ |
+| dev         | `449952321849` | Internal testing only. Never register public consumers here. |
+| prod        | `550271577754` | Production sync and **all** public consumer registrations.   |
 
 Account IDs also live in `project.config.ts` (`AWS.accounts`).
 
@@ -97,7 +97,9 @@ varlock run -- vp run cdk:deploy:shared:prod  # OIDC + budget (prod account)
 
 ## Operator registration
 
-Consumers create their SQS queues in **their** CDK. After those queues exist, register each club against this provider (prod and dev). Full process: [`src/cli/README.md`](../src/cli/README.md).
+Public consumers file a **Register as a consumer** GitHub issue after deploying their queue. Register them on **prod only**. Use `--environment dev` only when a maintainer is testing the wiring against the internal dev account.
+
+Do not ask consumers to point their queue policy at the dev event bus unless they are helping you test. Full process: [`src/cli/README.md`](../src/cli/README.md).
 
 ```sh
 varlock run -- vp run register -- --club "Club Name" --account 123456789012
@@ -110,7 +112,7 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012
 | `Verify and Deploy`     | Pull request (feature branches), push to `main`, `workflow_dispatch` | **Verify:** `vp check`, `vp test`, `cdk synth` (app stacks only). **Deploy CDK to AWS:** runs only after Verify passes — dev on pull requests, prod on push to `main`. Uses GitHub Environment `dev` or `prod`. Never deploys shared stacks. |
 | `Destroy Branch Stacks` | PR closed or branch deleted                                          | Destroys app stacks for the feature branch in dev (`cdk destroy --all`). Never touches prod or shared stacks.                                                                                                                                |
 
-Feature-branch deploys are isolated by branch slug (stacks, DynamoDB, S3, EventBridge, SSM under `/sams-provider/dev/<branch>/sync/...`). The register CLI still writes shared `/sams-provider/{env}/sync/...` paths for operator use on the main dev/prod buses.
+Feature-branch deploys are isolated by branch slug (stacks, DynamoDB, S3, EventBridge, SSM under `/sams-provider/dev/<branch>/sync/...`). The register CLI writes shared `/sams-provider/{env}/sync/...` paths on the main dev or prod bus (`prod` by default; `dev` for internal tests).
 
 Direct pushes to `main` are blocked; prod deploy runs on the `push` event from a merged PR. Feature branches only trigger via `pull_request` (not `push`) to avoid duplicate workflow runs when both would fire on the same commit.
 
@@ -122,5 +124,5 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 ## Tickets left for a later session
 
-- EventBridge → consumer SQS end-to-end (consumer queues belong in the consumer CDK)
+- End-to-end EventBridge → consumer SQS (consumers deploy queues; register via GitHub issue + CLI)
 - Consumer event processors (separate repositories; no issues filed yet)

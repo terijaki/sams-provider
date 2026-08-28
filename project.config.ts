@@ -8,10 +8,18 @@ export const AWS = {
    * per GitHub Environment (`dev` / `prod`) as secret `AWS_ROLE_ARN`.
    */
   accounts: {
+    /** Internal testing only. Do not register public consumers here. */
     dev: "449952321849",
+    /** Production sync and all public consumer registrations. */
     prod: "550271577754",
   },
 } as const;
+
+export type ProviderEnvironment = keyof typeof AWS.accounts;
+
+export function providerEventBusArn(environment: ProviderEnvironment): string {
+  return `arn:aws:events:${AWS.region}:${AWS.accounts[environment]}:event-bus/sams-provider`;
+}
 
 export const SAMS = {
   server: "https://www.volleyball-baden.de",

@@ -1,6 +1,12 @@
 import { PutParameterCommand, GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { EventBridgeClient, PutRuleCommand, PutTargetsCommand } from "@aws-sdk/client-eventbridge";
-import { AWS, CONSUMER_QUEUE_NAME, SAMS } from "@project.config";
+import {
+  AWS,
+  CONSUMER_QUEUE_NAME,
+  SAMS,
+  providerEventBusArn,
+  type ProviderEnvironment,
+} from "@project.config";
 import { getSamsClient } from "@utils/sams-client";
 import { slugify } from "@utils/slugify";
 import {
@@ -13,20 +19,59 @@ import {
 import { EventType } from "../events/schemas";
 import { unwrapSamsResult } from "../sams/result";
 
+export const REGISTER_USAGE = `Usage: sams-provider register --club "Club Name" --account 123456789012`;
+
+/** Public consumers are registered on prod. `dev` is maintainer testing only. */
+export const DEFAULT_REGISTER_ENVIRONMENT = "prod" as const;
+
 export type RegisterArgs = {
   club: string;
   account: string;
   consumerId?: string;
-  environment?: "dev" | "prod";
+  environment?: ProviderEnvironment;
   queueArn?: string;
   eventBusName?: string;
 };
+
+function readFlag(argv: string[], name: string): string | undefined {
+  const index = argv.indexOf(`--${name}`);
+  if (index === -1) {
+    return undefined;
+  }
+  return argv[index + 1];
+}
+
+export function parseRegisterEnvironment(value: string | undefined): ProviderEnvironment {
+  const environment = value ?? DEFAULT_REGISTER_ENVIRONMENT;
+  if (environment === "dev" || environment === "prod") {
+    return environment;
+  }
+  throw new Error(`--environment must be "dev" or "prod"`);
+}
+
+export function parseRegisterArgs(argv: string[]): RegisterArgs {
+  const club = readFlag(argv, "club");
+  const account = readFlag(argv, "account");
+  if (!club || !account) {
+    throw new Error(REGISTER_USAGE);
+  }
+  if (!/^\d{12}$/.test(account)) {
+    throw new Error("--account must be a 12-digit AWS account ID");
+  }
+  return {
+    club,
+    account,
+    consumerId: readFlag(argv, "consumer-id"),
+    queueArn: readFlag(argv, "queue-arn"),
+    environment: parseRegisterEnvironment(readFlag(argv, "environment")),
+  };
+}
 
 export async function registerConsumer(args: RegisterArgs): Promise<{
   club: ClubSubscription;
   consumer: ConsumerConfig;
 }> {
-  const environment = args.environment ?? "dev";
+  const environment = parseRegisterEnvironment(args.environment);
   const ssm = new SSMClient({ region: AWS.region });
   const sams = getSamsClient();
   const club = await resolveClub(sams, args.club);
@@ -172,28 +217,35 @@ async function putJson(ssm: SSMClient, name: string, value: unknown): Promise<vo
 }
 
 async function upsertEventBridgeTargets(args: {
-  environment: string;
+  environment: ProviderEnvironment;
   eventBusName: string;
   consumer: ConsumerConfig;
 }): Promise<void> {
   const events = new EventBridgeClient({ region: AWS.region });
   const ruleName = `sams-provider-${args.consumer.id}`;
-  await events.send(
-    new PutRuleCommand({
-      Name: ruleName,
-      EventBusName: args.eventBusName,
-      State: "ENABLED",
-      EventPattern: JSON.stringify({
-        source: ["sams-provider"],
-        "detail-type": Object.values(EventType),
+  try {
+    await events.send(
+      new PutRuleCommand({
+        Name: ruleName,
+        EventBusName: args.eventBusName,
+        State: "ENABLED",
+        EventPattern: JSON.stringify({
+          source: ["sams-provider"],
+          "detail-type": Object.values(EventType),
+        }),
       }),
-    }),
-  );
-  await events.send(
-    new PutTargetsCommand({
-      Rule: ruleName,
-      EventBusName: args.eventBusName,
-      Targets: [{ Id: args.consumer.id, Arn: args.consumer.queueArn }],
-    }),
-  );
+    );
+    await events.send(
+      new PutTargetsCommand({
+        Rule: ruleName,
+        EventBusName: args.eventBusName,
+        Targets: [{ Id: args.consumer.id, Arn: args.consumer.queueArn }],
+      }),
+    );
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown error";
+    throw new Error(
+      `Failed to wire EventBridge on ${args.eventBusName} to ${args.consumer.queueArn}. Confirm the queue exists in account ${args.consumer.accountId} (${AWS.region}) and allows events.amazonaws.com to sqs:SendMessage from ${providerEventBusArn(args.environment)}. ${detail}`,
+    );
+  }
 }

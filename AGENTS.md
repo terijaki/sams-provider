@@ -18,7 +18,7 @@ Instructions for AI coding agents working in this repository.
 - **Full gate:** `vp run verify`
 - **CDK:** `varlock run -- vp exec cdk synth` and `varlock run -- vp exec cdk deploy --all`
 - **Shared account stacks (OIDC + budget, not in `--all`):** `varlock run -- vp run cdk:deploy:shared`
-- **Register a consumer club:** `varlock run -- vp run register -- --club "Club Name" --account 123456789012` (see `src/cli/README.md`)
+- **Register a consumer club (prod by default):** `varlock run -- vp run register -- --club "Club Name" --account 123456789012`. Use `--environment dev` only for internal tests. See `src/cli/README.md`.
 
 `vpr` is the Varlock-wrapped Vite+ entrypoint when available (`varlock run -- vp ...`). Prefer `vp` over invoking Bun directly.
 
@@ -34,4 +34,4 @@ Instructions for AI coding agents working in this repository.
 
 ## AWS accounts
 
-Two accounts: **dev** (`449952321849`) and **prod** (`550271577754`). GitHub Actions uses Environments `dev` / `prod` with the same secret name `AWS_ROLE_ARN`. Deploy shared account stacks locally (`cdk:deploy:shared`) — they are not part of `cdk deploy --all`. See `docs/SETUP.md`.
+Two accounts: **dev** (`449952321849`, internal testing) and **prod** (`550271577754`, public consumer registrations). GitHub Actions uses Environments `dev` / `prod` with the same secret name `AWS_ROLE_ARN`. Deploy shared account stacks locally (`cdk:deploy:shared`) — they are not part of `cdk deploy --all`. See `docs/SETUP.md`.
