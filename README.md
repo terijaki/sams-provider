@@ -4,13 +4,34 @@ Event-fed volleyball data from SAMS. This service syncs clubs, teams, matches, a
 
 There is **no public read API** and no proxy you can query. Your website (or other app) keeps its own local copy of the data and updates it from those events.
 
+## Why register
+
+SAMS is the upstream volleyball information system. Calling it directly from every club site means building your own polling, logo hosting, multi-association indexing, and match refresh logic. The provider does that work once and ships **normalized projections** your app can store locally.
+
+After registration you receive:
+
+- **Club profile** updates (name, association, public logo URL)
+- **Current-season teams** for your registered club
+- **Match schedule and results** with adaptive refresh near game time
+- **League rankings** aligned with match updates
+
+You keep a **local projection** in your database or cache and update it from SQS messages. Live match ticker stays in your app — the provider does not publish ticker data.
+
+Install TypeScript types and Zod schemas from npm:
+
+```bash
+bun add sams-provider-events
+```
+
+See [docs/consumers/events.md](docs/consumers/events.md) for a full event reference.
+
 ## Get events for your club
 
 1. Deploy the queue described below in your AWS account.
 2. Open a **[Register as a consumer](https://github.com/terijaki/sams-provider/issues/new?template=consumer-registration.yml)** issue.
 3. A maintainer wires the event bus to your queue. Re-runs are safe if something needs correcting.
 
-After that, events arrive on your queue. You still need a processor in **your** app to turn the versioned envelopes into your own projections. Payload shapes live in [`src/events/schemas.ts`](src/events/schemas.ts). Match ticker stays in your app; this service does not provide one.
+After that, events arrive on your queue. You still need a processor in **your** app to turn the versioned envelopes into your own projections. Use the [`sams-provider-events`](https://www.npmjs.com/package/sams-provider-events) npm package for types, Zod schemas, and SQS parsing — see [docs/consumers/events.md](docs/consumers/events.md) for prose documentation.
 
 ### What to put on the issue
 

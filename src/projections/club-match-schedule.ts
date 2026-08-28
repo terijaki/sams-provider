@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import type { SamsMatchInput, SamsClubInput } from "@lib/db/schemas";
 import type { ClubSubscription } from "../config/schema";
-import { createEventEnvelope, EventType, type EventEnvelope } from "../events/schemas";
+import { createEventEnvelope, SamsEventType, type SamsEvent } from "../events/schemas";
 import { publicLogoUrl } from "../logos/preserve";
 import { toClubProjection, type ClubRecord } from "./club-season-teams";
 import { toMatchProjection, type MatchBlockRepos, type SamsLeagueMatch } from "./match-block";
@@ -74,11 +74,11 @@ export async function buildClubMatchScheduleEvents(args: {
   sourceSyncId: string;
   cachedAt: string;
   now?: Date;
-}): Promise<EventEnvelope[]> {
+}): Promise<SamsEvent[]> {
   const storedClubs = await args.repos.clubs.listAll();
   const clubByUuid = new Map(storedClubs.map((club) => [club.sportsclubUuid, club]));
   const subscriptionByUuid = new Map(args.clubs.map((club) => [club.uuid, club]));
-  const events: EventEnvelope[] = [];
+  const events: SamsEvent[] = [];
 
   for (const clubUuid of args.clubUuids) {
     const subscription = subscriptionByUuid.get(clubUuid);
@@ -101,7 +101,7 @@ export async function buildClubMatchScheduleEvents(args: {
 
     events.push(
       createEventEnvelope({
-        type: EventType.clubMatchScheduleUpdated,
+        type: SamsEventType.clubMatchScheduleUpdated,
         sourceSyncId: args.sourceSyncId,
         payload: buildClubMatchScheduleProjection({
           club: toClubRecord(storedClub, args.publicLogoBaseUrl),

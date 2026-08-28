@@ -7,6 +7,8 @@ body:
     attributes:
       value: |
         Queue setup is in the [README](https://github.com/terijaki/sams-provider#get-events-for-your-club).
+        Event types and payloads: [docs/consumers/events.md](https://github.com/terijaki/sams-provider/blob/main/docs/consumers/events.md).
+        TypeScript types: [`sams-provider-events`](https://www.npmjs.com/package/sams-provider-events) on npm.
   - type: input
     id: club
     attributes:

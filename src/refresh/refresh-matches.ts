@@ -1,7 +1,7 @@
 import type { SamsClient } from "sams-rest-v2";
 import type { ClubSubscription, MatchRefreshPolicy } from "../config/schema";
 import type { DomainEventPublisher } from "../events/publisher";
-import { createEventEnvelope, EventType } from "../events/schemas";
+import { createEventEnvelope, SamsEventType } from "../events/schemas";
 import {
   buildMatchBlocks,
   dueRefreshDecisions,
@@ -108,7 +108,7 @@ export async function refreshMatchesAndRankings(args: {
     const cachedAt = new Date().toISOString();
     events.push(
       createEventEnvelope({
-        type: EventType.matchBlockUpdated,
+        type: SamsEventType.matchBlockUpdated,
         sourceSyncId: args.sourceSyncId,
         payload: {
           matchBlockId: block.id,
@@ -141,7 +141,7 @@ export async function refreshMatchesAndRankings(args: {
       });
       events.push(
         createEventEnvelope({
-          type: EventType.leagueRankingUpdated,
+          type: SamsEventType.leagueRankingUpdated,
           sourceSyncId: args.sourceSyncId,
           payload: {
             leagueUuid: block.leagueUuid,

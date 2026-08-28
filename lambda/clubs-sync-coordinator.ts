@@ -8,7 +8,7 @@ import middy from "@middy/core";
 import { AWS } from "@project.config";
 import { loadProviderRuntimeConfig } from "@src/config/load";
 import { EventBridgePublisher } from "@src/events/eventbridge-publisher";
-import { createEventEnvelope, EventType } from "@src/events/schemas";
+import { createEventEnvelope, SamsEventType } from "@src/events/schemas";
 import { fanOutClubsSyncWorkers, listAssociationsForClubsSync } from "@src/sync/clubs-coordinator";
 import { createSamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { parseLambdaEnv } from "./utils/env";
@@ -63,7 +63,7 @@ const lambdaHandler = async () => {
 
     await publisher.publish([
       createEventEnvelope({
-        type: EventType.clubsSyncCompleted,
+        type: SamsEventType.clubsSyncCompleted,
         sourceSyncId,
         payload: {
           associationsInvoked: associations.length,

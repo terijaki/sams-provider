@@ -1,11 +1,17 @@
-import { createHash } from "node:crypto";
 import type { SamsClient } from "sams-rest-v2";
 import type { ClubSubscription } from "../config/schema";
 import type { DomainEventPublisher } from "../events/publisher";
-import { createEventEnvelope, EventType, snapshotVersion } from "../events/schemas";
+import { createEventEnvelope, SamsEventType, snapshotVersion } from "../events/schemas";
 import { publicLogoUrl } from "../logos/preserve";
-import { buildClubSeasonTeamsProjection } from "../projections/club-season-teams";
+import { buildClubSeasonTeamsProjection, type TeamRecord } from "../projections/club-season-teams";
+import {
+  buildClubSeasonRostersProjection,
+  buildTeamRosterProjection,
+  rosterProjectionSnapshot,
+} from "../projections/team-roster";
+import { isSamsNotFoundResult } from "../sams/not-found";
 import { unwrapSamsResult } from "../sams/result";
+import { mapRosterOfficials, mapRosterPlayers } from "./roster-mapping";
 import type { SamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
 import { slugify } from "@utils/slugify";
@@ -64,10 +70,12 @@ export async function syncTeams(args: {
   if (!currentSeason?.uuid || !currentSeason.name) {
     throw new Error("Current season not found");
   }
+  const seasonUuid = currentSeason.uuid;
+  const seasonName = currentSeason.name;
 
   await args.repos.seasons.upsert({
-    uuid: currentSeason.uuid,
-    name: currentSeason.name,
+    uuid: seasonUuid,
+    name: seasonName,
     currentSeason: true,
     ttl: unixTtlFromNow(30),
   });
@@ -81,7 +89,7 @@ export async function syncTeams(args: {
       const { data: hierarchyData } = await args.sams.getAllLeagueHierarchies({
         query: {
           association: associationUuid,
-          "for-season": currentSeason.uuid,
+          "for-season": seasonUuid,
           page: hierarchyPage,
           size: 100,
         },
@@ -102,7 +110,7 @@ export async function syncTeams(args: {
         query: { association: associationUuid, page: leaguePage, size: 100 },
       });
       const currentSeasonLeagues = (leagueData?.content ?? []).filter(
-        (league) => league.seasonUuid === currentSeason.uuid,
+        (league) => league.seasonUuid === seasonUuid,
       );
       allLeagues.push(...currentSeasonLeagues);
       leaguePage += 1;
@@ -121,7 +129,7 @@ export async function syncTeams(args: {
       uuid: league.uuid,
       name: league.name,
       associationUuid: league.associationUuid ?? associationUuids[0] ?? "",
-      seasonUuid: currentSeason.uuid,
+      seasonUuid: seasonUuid,
       ...(league.leagueHierarchyUuid ? { leagueHierarchyUuid: league.leagueHierarchyUuid } : {}),
       ...(league.leagueHierarchyUuid && hierarchyLevelByUuid.has(league.leagueHierarchyUuid)
         ? { leagueHierarchyLevel: hierarchyLevelByUuid.get(league.leagueHierarchyUuid) }
@@ -134,8 +142,31 @@ export async function syncTeams(args: {
   const previousHashByUuid = new Map(
     previousTeams.map((team) => [team.uuid, snapshotVersion(team)]),
   );
+  const previousRosters = await args.repos.rosters.listAll();
+  const previousRosterHashByTeamUuid = new Map(
+    previousRosters.map((roster) => [roster.teamUuid, rosterProjectionSnapshot(roster)]),
+  );
   const syncedTeamUuids = new Set<string>();
   const changedTeamUuids: string[] = [];
+  const changedRosterTeamUuids = new Set<string>();
+  const teamContextByUuid = new Map<string, TeamRecord>(
+    previousTeams.map((team) => [
+      team.uuid,
+      {
+        uuid: team.uuid,
+        name: team.name,
+        nameSlug: team.nameSlug,
+        sportsclubUuid: team.sportsclubUuid,
+        leagueUuid: team.leagueUuid,
+        leagueName: team.leagueName,
+        ...(team.leagueHierarchyLevel !== undefined
+          ? { leagueHierarchyLevel: team.leagueHierarchyLevel }
+          : {}),
+        seasonUuid: seasonUuid,
+        seasonName,
+      },
+    ]),
+  );
 
   for (const league of allLeagues) {
     if (!league.uuid || !league.name) {
@@ -173,33 +204,39 @@ export async function syncTeams(args: {
           leagueUuid: league.uuid,
           leagueName: league.name,
           ...(leagueHierarchyLevel !== undefined ? { leagueHierarchyLevel } : {}),
-          seasonUuid: currentSeason.uuid,
-          seasonName: currentSeason.name,
+          seasonUuid: seasonUuid,
+          seasonName: seasonName,
           ttl: unixTtlFromNow(365),
         };
         await args.repos.teams.upsert(item);
         syncedTeamUuids.add(team.uuid);
+        teamContextByUuid.set(team.uuid, item);
         if (snapshotVersion(item) !== previousHashByUuid.get(team.uuid)) {
           changedTeamUuids.push(team.uuid);
         }
 
-        try {
-          const { data: rosterData, error: rosterError } = unwrapSamsResult(
-            await args.sams.getTeamRosterByTeamUuid({
-              path: { uuid: team.uuid },
-            }),
-          );
-          if (rosterError || !rosterData) {
-            throw rosterError ?? new Error("empty roster");
-          }
-          await args.repos.rosters.upsert({
+        const rosterResult = await args.sams.getTeamRosterByTeamUuid({
+          path: { uuid: team.uuid },
+        });
+        if (isSamsNotFoundResult(rosterResult)) {
+          // SAMS 404 is unreliable for rosters — keep the stored squad like club logos.
+        } else if ("error" in rosterResult && rosterResult.error) {
+          // Transient failures should not wipe roster data.
+        } else {
+          const rosterData = rosterResult.data ?? { players: [], officials: [] };
+          const players = mapRosterPlayers(team.uuid, rosterData.players ?? []);
+          const officials = mapRosterOfficials(team.uuid, rosterData.officials ?? []);
+          const upsertedRoster = await args.repos.rosters.upsert({
             teamUuid: team.uuid,
-            players: mapRosterPlayers(team.uuid, rosterData.players ?? []),
-            officials: mapRosterOfficials(team.uuid, rosterData.officials ?? []),
+            players,
+            officials,
             ttl: unixTtlFromNow(365),
           });
-        } catch {
-          await args.repos.rosters.delete(team.uuid);
+          if (
+            rosterProjectionSnapshot(upsertedRoster) !== previousRosterHashByTeamUuid.get(team.uuid)
+          ) {
+            changedRosterTeamUuids.add(team.uuid);
+          }
         }
         await sleep(500);
       }
@@ -214,6 +251,22 @@ export async function syncTeams(args: {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   for (const existing of previousTeams) {
     if (!syncedTeamUuids.has(existing.uuid) && existing.updatedAt < oneHourAgo) {
+      if (previousRosterHashByTeamUuid.has(existing.uuid)) {
+        changedRosterTeamUuids.add(existing.uuid);
+        teamContextByUuid.set(existing.uuid, {
+          uuid: existing.uuid,
+          name: existing.name,
+          nameSlug: existing.nameSlug,
+          sportsclubUuid: existing.sportsclubUuid,
+          leagueUuid: existing.leagueUuid,
+          leagueName: existing.leagueName,
+          ...(existing.leagueHierarchyLevel !== undefined
+            ? { leagueHierarchyLevel: existing.leagueHierarchyLevel }
+            : {}),
+          seasonUuid: existing.seasonUuid,
+          seasonName: existing.seasonName,
+        });
+      }
       await args.repos.teams.delete(existing.uuid);
       await args.repos.rosters.delete(existing.uuid);
     }
@@ -229,11 +282,11 @@ export async function syncTeams(args: {
 
   const events = [
     createEventEnvelope({
-      type: EventType.teamsSyncCompleted,
+      type: SamsEventType.teamsSyncCompleted,
       sourceSyncId: args.sourceSyncId,
       payload: {
-        seasonUuid: currentSeason.uuid,
-        seasonName: currentSeason.name,
+        seasonUuid: seasonUuid,
+        seasonName,
         teamsCount: syncedTeamUuids.size,
         countsBySportsclubUuid,
         changedTeamUuids,
@@ -241,11 +294,13 @@ export async function syncTeams(args: {
     }),
   ];
 
+  const season = { uuid: seasonUuid, name: seasonName, current: true };
+
   for (const club of configured) {
     const teams = await args.repos.teams.listBySportsclub(club.sportsclubUuid);
     events.push(
       createEventEnvelope({
-        type: EventType.clubSeasonTeamsUpdated,
+        type: SamsEventType.clubSeasonTeamsUpdated,
         sourceSyncId: args.sourceSyncId,
         payload: buildClubSeasonTeamsProjection({
           club: {
@@ -261,7 +316,60 @@ export async function syncTeams(args: {
             }),
           },
           teams,
-          season: { uuid: currentSeason.uuid, name: currentSeason.name, current: true },
+          season,
+        }),
+      }),
+    );
+
+    const rostersByTeamUuid = new Map(
+      (
+        await Promise.all(
+          teams.map(async (team) => {
+            const roster = await args.repos.rosters.get(team.uuid);
+            return roster ? ([team.uuid, roster] as const) : undefined;
+          }),
+        )
+      ).filter((entry) => entry !== undefined),
+    );
+    events.push(
+      createEventEnvelope({
+        type: SamsEventType.clubSeasonRostersUpdated,
+        sourceSyncId: args.sourceSyncId,
+        payload: buildClubSeasonRostersProjection({
+          club: {
+            sportsclubUuid: club.sportsclubUuid,
+            name: club.name,
+            nameSlug: club.nameSlug,
+            associationUuid: club.associationUuid,
+            associationName: club.associationName,
+            logoUrl: publicLogoUrl({
+              publicBaseUrl: args.publicLogoBaseUrl,
+              logoS3Key: club.logoS3Key,
+              fallbackImageLink: club.logoImageLink,
+            }),
+          },
+          teams,
+          rostersByTeamUuid,
+          season,
+        }),
+      }),
+    );
+  }
+
+  for (const teamUuid of changedRosterTeamUuids) {
+    const team = teamContextByUuid.get(teamUuid);
+    if (!team || !sportsclubUuids.has(team.sportsclubUuid)) {
+      continue;
+    }
+    const roster = await args.repos.rosters.get(teamUuid);
+    events.push(
+      createEventEnvelope({
+        type: SamsEventType.teamRosterUpdated,
+        sourceSyncId: args.sourceSyncId,
+        payload: buildTeamRosterProjection({
+          team,
+          roster,
+          season,
         }),
       }),
     );
@@ -278,67 +386,9 @@ export async function syncTeams(args: {
   return {
     teamsCount: syncedTeamUuids.size,
     changedTeamUuids,
-    seasonUuid: currentSeason.uuid,
-    seasonName: currentSeason.name,
+    seasonUuid: seasonUuid,
+    seasonName: seasonName,
   };
-}
-
-function mapRosterPlayers(
-  teamUuid: string,
-  players: Array<{
-    uuid?: string;
-    name?: string | null;
-    jerseyNumber?: number | null;
-    position?: string | null;
-    portraitImageLink?: string | null;
-  }>,
-) {
-  const mapped = [];
-  for (const player of players) {
-    if (!player.name?.trim()) {
-      continue;
-    }
-    mapped.push({
-      uuid:
-        player.uuid ??
-        pseudoRosterUuid(teamUuid, "player", player.name, player.jerseyNumber ?? undefined),
-      name: player.name,
-      ...(player.jerseyNumber != null ? { jerseyNumber: player.jerseyNumber } : {}),
-      ...(player.position ? { position: player.position } : {}),
-      ...(player.portraitImageLink ? { portraitImageLink: player.portraitImageLink } : {}),
-    });
-  }
-  return mapped;
-}
-
-function mapRosterOfficials(
-  teamUuid: string,
-  officials: Array<{ uuid?: string; name?: string | null; role?: string | null }>,
-) {
-  const mapped = [];
-  for (const official of officials) {
-    if (!official.name?.trim()) {
-      continue;
-    }
-    mapped.push({
-      uuid:
-        official.uuid ??
-        pseudoRosterUuid(teamUuid, "official", official.name, official.role ?? undefined),
-      name: official.name,
-      ...(official.role ? { role: official.role } : {}),
-    });
-  }
-  return mapped;
-}
-
-function pseudoRosterUuid(
-  teamUuid: string,
-  kind: "player" | "official",
-  ...parts: (string | number | undefined)[]
-): string {
-  const input = [teamUuid, kind, ...parts.map((part) => String(part ?? ""))].join("|");
-  const hex = createHash("sha256").update(input).digest("hex").slice(0, 32);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
 function defaultSleep(ms: number): Promise<void> {

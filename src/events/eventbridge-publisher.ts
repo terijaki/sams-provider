@@ -1,6 +1,6 @@
 import { PutEventsCommand, EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import type { DomainEventPublisher } from "./publisher";
-import { EVENT_SOURCE, type EventEnvelope } from "./schemas";
+import { EVENT_SOURCE, type SamsEvent } from "./schemas";
 
 export class EventBridgePublisher implements DomainEventPublisher {
   constructor(
@@ -8,7 +8,7 @@ export class EventBridgePublisher implements DomainEventPublisher {
     private readonly eventBusName: string,
   ) {}
 
-  async publish(events: EventEnvelope[]): Promise<void> {
+  async publish(events: SamsEvent[]): Promise<void> {
     if (events.length === 0) {
       return;
     }

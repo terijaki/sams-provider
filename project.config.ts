@@ -29,5 +29,5 @@ export const SAMS = {
 
 export const RESOURCE_PREFIX = "sp" as const;
 
-/** Conventional consumer SQS queue name in each consumer account. */
+/** Register CLI fallback queue name when `--queue-arn` is omitted. Consumers may use any queue name; they provide the ARN when registering. */
 export const CONSUMER_QUEUE_NAME = "sams-provider-events" as const;

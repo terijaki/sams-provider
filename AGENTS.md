@@ -49,3 +49,7 @@ For `/to-tickets`: link sub-issues with `gh api repos/<owner>/<repo>/issues/<par
 ### Domain docs
 
 This repository is configured as single-context: root `CONTEXT.md` and `docs/adr` are the domain sources. See [`docs/agents/domain.md`](docs/agents/domain.md).
+
+### Consumer documentation
+
+Club-facing docs: root README, `docs/consumers/`, and `packages/sams-provider-events/README.md`. See [`src/AGENTS.md`](src/AGENTS.md) for scope and tone — keep maintainer workflow out of consumer-facing pages.
