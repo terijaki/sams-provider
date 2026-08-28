@@ -9,6 +9,7 @@ export const EventType = {
   clubUpdated: "sams.club.updated",
   teamsSyncCompleted: "sams.teams.sync.completed",
   clubSeasonTeamsUpdated: "sams.club-season-teams.updated",
+  clubMatchScheduleUpdated: "sams.club-match-schedule.updated",
   matchBlockUpdated: "sams.match-block.updated",
   matchesUpdated: "sams.matches.updated",
   leagueRankingUpdated: "sams.league-ranking.updated",
@@ -23,6 +24,7 @@ const EVENT_TYPE_VALUES = [
   EventType.clubUpdated,
   EventType.teamsSyncCompleted,
   EventType.clubSeasonTeamsUpdated,
+  EventType.clubMatchScheduleUpdated,
   EventType.matchBlockUpdated,
   EventType.matchesUpdated,
   EventType.leagueRankingUpdated,
@@ -85,6 +87,60 @@ export const teamsSyncCompletedPayloadSchema = z.object({
   changedTeamUuids: z.array(z.string().min(1)),
 });
 
+export const matchTeamSideSchema = z.object({
+  uuid: z.string().min(1),
+  name: z.string().min(1),
+  sportsclubUuid: z.string().min(1).optional(),
+  logoUrl: z.string().nullable().optional(),
+});
+
+export const matchLocationSchema = z.object({
+  uuid: z.string().min(1),
+  name: z.string().min(1).optional(),
+});
+
+export const matchSetResultSchema = z.object({
+  number: z.number().int(),
+  ballPoints: z.string().optional(),
+  winner: z.string().optional(),
+  winnerName: z.string().optional(),
+  duration: z.number().int().optional(),
+});
+
+export const matchResultSchema = z.object({
+  winner: z.string().nullable().optional(),
+  winnerName: z.string().nullable().optional(),
+  setPoints: z.string().nullable().optional(),
+  ballPoints: z.string().nullable().optional(),
+  sets: z.array(matchSetResultSchema).optional(),
+});
+
+export const matchProjectionSchema = z.object({
+  uuid: z.string().min(1),
+  date: z.string().nullable().optional(),
+  time: z.string().nullable().optional(),
+  leagueUuid: z.string().min(1).optional(),
+  seasonUuid: z.string().min(1).optional(),
+  team1: matchTeamSideSchema,
+  team2: matchTeamSideSchema,
+  location: matchLocationSchema.optional(),
+  result: matchResultSchema.optional(),
+  hasResult: z.boolean(),
+});
+
+export const clubMatchSchedulePayloadSchema = z.object({
+  club: clubProjectionSchema,
+  season: z.object({
+    uuid: z.string().min(1),
+    name: z.string().min(1),
+    current: z.boolean(),
+  }),
+  matches: z.array(matchProjectionSchema),
+  projectedAt: z.iso.datetime(),
+  cachedAt: z.iso.datetime(),
+  isStale: z.boolean(),
+});
+
 export const matchBlockUpdatedPayloadSchema = z.object({
   matchBlockId: z.string().min(1),
   leagueUuid: z.string().min(1),
@@ -94,7 +150,7 @@ export const matchBlockUpdatedPayloadSchema = z.object({
   nextRefreshAfter: z.iso.datetime().nullable(),
   isStale: z.boolean(),
   matchUuids: z.array(z.string().min(1)),
-  matches: z.array(z.record(z.string(), z.unknown())),
+  matches: z.array(matchProjectionSchema),
 });
 
 export const leagueRankingEntrySchema = z.object({
@@ -143,6 +199,7 @@ const PAYLOAD_SCHEMAS = {
   [EventType.clubUpdated]: clubProjectionSchema,
   [EventType.teamsSyncCompleted]: teamsSyncCompletedPayloadSchema,
   [EventType.clubSeasonTeamsUpdated]: clubSeasonTeamsPayloadSchema,
+  [EventType.clubMatchScheduleUpdated]: clubMatchSchedulePayloadSchema,
   [EventType.matchBlockUpdated]: matchBlockUpdatedPayloadSchema,
   [EventType.matchesUpdated]: matchBlockUpdatedPayloadSchema,
   [EventType.leagueRankingUpdated]: leagueRankingUpdatedPayloadSchema,

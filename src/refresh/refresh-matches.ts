@@ -9,6 +9,8 @@ import {
   type PlannedMatch,
 } from "../refresh/planner";
 import { buildLeagueRankingProjection } from "../projections/league-ranking";
+import { buildClubMatchScheduleEvents } from "../projections/club-match-schedule";
+import { buildMatchBlockProjection } from "../projections/match-block";
 import { unwrapSamsResult } from "../sams/result";
 import type { SamsRepositories } from "@lib/db/repositories/create-sams-repositories";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
@@ -41,8 +43,10 @@ export async function refreshMatchesAndRankings(args: {
     sportsclubUuids: match.sportsclubUuids,
   }));
 
+  let bootstrapped = false;
   if (planned.length === 0) {
     planned = await fetchScheduleForClubs(args);
+    bootstrapped = true;
   }
 
   const blocks = buildMatchBlocks(planned);
@@ -50,13 +54,20 @@ export async function refreshMatchesAndRankings(args: {
     planMatchRefresh({ blocks, now: args.now, policy: args.policy }),
   );
   const events = [];
+  const affectedClubUuids = new Set<string>();
+
+  if (bootstrapped) {
+    for (const club of args.clubs) {
+      affectedClubUuids.add(club.uuid);
+    }
+  }
 
   for (const decision of decisions) {
     const block = blocks.find((item) => item.id === decision.matchBlockId);
     if (!block) {
       continue;
     }
-    const matches = [];
+    const rawMatches = [];
     for (const matchUuid of block.matchUuids) {
       const { data, error } = unwrapSamsResult(
         await args.sams.getLeagueMatchByUuid({ path: { uuid: matchUuid } }),
@@ -84,9 +95,15 @@ export async function refreshMatchesAndRankings(args: {
         rawJson: JSON.stringify(data),
         ttl: unixTtlFromNow(30),
       });
-      matches.push(data);
+      rawMatches.push(data);
       await sleep(200);
     }
+
+    const matches = await buildMatchBlockProjection({
+      matches: rawMatches,
+      repos: args.repos,
+      publicLogoBaseUrl: args.publicLogoBaseUrl,
+    });
 
     const cachedAt = new Date().toISOString();
     events.push(
@@ -112,7 +129,7 @@ export async function refreshMatchesAndRankings(args: {
         path: { uuid: block.leagueUuid },
         query: { page: 0, size: 100 },
       });
-      const seasonUuid = matches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
+      const seasonUuid = rawMatches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
       const entries = await buildLeagueRankingProjection({
         entries: rankingData?.content ?? [],
         repos: args.repos,
@@ -138,6 +155,31 @@ export async function refreshMatchesAndRankings(args: {
           },
         }),
       );
+    }
+
+    for (const clubUuid of block.sportsclubUuids) {
+      if (args.clubs.some((club) => club.uuid === clubUuid)) {
+        affectedClubUuids.add(clubUuid);
+      }
+    }
+  }
+
+  if (affectedClubUuids.size > 0) {
+    const season = await resolveCurrentSeason(args);
+    if (season) {
+      const cachedAt = new Date().toISOString();
+      const scheduleEvents = await buildClubMatchScheduleEvents({
+        clubUuids: affectedClubUuids,
+        clubs: args.clubs,
+        storedMatches: await args.repos.matches.listAll(),
+        repos: args.repos,
+        publicLogoBaseUrl: args.publicLogoBaseUrl,
+        season,
+        sourceSyncId: args.sourceSyncId,
+        cachedAt,
+        now: args.now,
+      });
+      events.push(...scheduleEvents);
     }
   }
 
@@ -222,4 +264,22 @@ async function fetchScheduleForClubs(args: {
 
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveCurrentSeason(args: {
+  sams: SamsClient;
+  repos: SamsRepositories;
+}): Promise<{ uuid: string; name: string; current: boolean } | undefined> {
+  const storedSeasons = await args.repos.seasons.listAll();
+  const storedCurrent = storedSeasons.find((season) => season.currentSeason);
+  if (storedCurrent?.uuid && storedCurrent.name) {
+    return { uuid: storedCurrent.uuid, name: storedCurrent.name, current: true };
+  }
+
+  const { data: seasons } = await args.sams.getAllSeasons({});
+  const currentSeason = seasons?.find((season) => season.currentSeason);
+  if (currentSeason?.uuid && currentSeason.name) {
+    return { uuid: currentSeason.uuid, name: currentSeason.name, current: true };
+  }
+  return undefined;
 }
