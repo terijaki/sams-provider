@@ -13,8 +13,14 @@ interface MonitoringStackProps extends cdk.StackProps {
     branch: string;
   };
   alertEmail: string;
-  syncLambdas: lambda.IFunction[];
+  syncLambdaTargets: SyncLambdaMonitorTarget[];
 }
+
+export type SyncLambdaMonitorTarget = {
+  /** Stable construct id for alarms and dashboard widgets. */
+  id: string;
+  functionName: string;
+};
 
 export class MonitoringStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: MonitoringStackProps) {
@@ -30,19 +36,20 @@ export class MonitoringStack extends cdk.Stack {
     topic.addSubscription(new snsSubscriptions.EmailSubscription(props.alertEmail));
 
     const widgets: cloudwatch.IWidget[] = [];
-    for (const fn of props.syncLambdas) {
+    for (const target of props.syncLambdaTargets) {
+      const fn = lambda.Function.fromFunctionName(this, target.id, target.functionName);
       const errors = fn.metricErrors({ period: cdk.Duration.minutes(5) });
-      const alarm = new cloudwatch.Alarm(this, lambdaErrorAlarmId(fn), {
+      const alarm = new cloudwatch.Alarm(this, `${target.id}Errors`, {
         metric: errors,
         threshold: 1,
         evaluationPeriods: 1,
-        alarmDescription: `SAMS provider ${fn.functionName} errors`,
+        alarmDescription: `SAMS provider ${target.functionName} errors`,
         treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
       });
       alarm.addAlarmAction(new cloudwatchActions.SnsAction(topic));
       widgets.push(
         new cloudwatch.GraphWidget({
-          title: `${fn.functionName} errors`,
+          title: `${target.functionName} errors`,
           left: [errors],
         }),
       );
