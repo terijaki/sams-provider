@@ -120,7 +120,11 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 **Branch name truncation:** sanitized branch slugs are capped at 20 characters. Two long branch names with the same prefix can collide.
 
+## Issue tracking
+
+Provider-scope GitHub Issues and projection sub-issues: [`docs/agents/issue-tracker.md`](agents/issue-tracker.md). PRD mirror (sync to [#1](https://github.com/terijaki/sams-provider/issues/1) when needed): [`docs/issues/001-prd-sams-provider.md`](issues/001-prd-sams-provider.md).
+
 ## Tickets left for a later session
 
-- EventBridge → consumer SQS end-to-end (consumer queues belong in the consumer CDK)
-- Consumer event processors (separate repositories; no issues filed yet)
+- Provider gaps not yet filed — see issue tracker (status events, adaptive throttle enforcement, subscription filters, observability)
+- Consumer EventBridge → SQS processors (consumer repos)
