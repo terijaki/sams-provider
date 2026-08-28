@@ -54,7 +54,3 @@ export function cdkBootstrapRoleArns(account: string, region: string): string[] 
     `arn:aws:iam::${account}:role/cdk-${qualifier}-lookup-role-${account}-${region}`,
   ];
 }
-
-export function githubActionsCdkRoleArn(account: string): string {
-  return `arn:aws:iam::${account}:role/${GITHUB.oidcRoleName}`;
-}

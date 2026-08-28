@@ -59,7 +59,7 @@ describe("GitHubOidcStack", () => {
         Statement: Match.arrayWith([
           Match.objectLike({
             Sid: "AssumeCdkBootstrapRoles",
-            Action: "sts:AssumeRole",
+            Action: ["sts:AssumeRole", "sts:TagSession"],
             Resource: [
               "arn:aws:iam::449952321849:role/cdk-hnb659fds-deploy-role-449952321849-eu-central-1",
               "arn:aws:iam::449952321849:role/cdk-hnb659fds-file-publishing-role-449952321849-eu-central-1",

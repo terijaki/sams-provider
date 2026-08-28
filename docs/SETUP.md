@@ -56,17 +56,7 @@ This creates the GitHub OIDC provider (or reuses `GITHUB_OIDC_PROVIDER_ARN` if y
 
 New repositories use immutable owner/repo IDs in the `sub` claim. The shared OIDC stack trusts both formats via `StringLike`.
 
-Re-bootstrap each account with `--trust` so GitHub Actions assumes the CDK deploy roles instead of deploying with direct credentials (removes `could not be used to assume` warnings in CI):
-
-```sh
-# Dev
-vp run cdk:bootstrap -- aws://449952321849/eu-central-1 \
-  --trust arn:aws:iam::449952321849:role/GitHubActionsCDKRole
-
-# Prod
-vp run cdk:bootstrap -- aws://550271577754/eu-central-1 \
-  --trust arn:aws:iam::550271577754:role/GitHubActionsCDKRole
-```
+`GitHubActionsCDKRole` may assume the same-account CDK bootstrap roles (`sts:AssumeRole` + `sts:TagSession`). `--trust` is only for **cross-account** bootstrap (another AWS account ID) and is not needed here. After changing the OIDC stack, redeploy it locally (`cdk:deploy:shared`) — CI never deploys shared stacks.
 
 4. Create GitHub Environments **`dev`** and **`prod`**. Restrict `prod` deployments to `main`. Leave `dev` unrestricted so feature-branch `workflow_dispatch` can deploy to the dev account.
 5. In **each** environment, set the Actions **secret** `AWS_ROLE_ARN` to that account's role ARN (CDK output `RoleArn`). Same secret name in both environments; different values.

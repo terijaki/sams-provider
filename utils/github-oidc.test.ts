@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  GITHUB,
-  cdkBootstrapRoleArns,
-  githubActionsCdkRoleArn,
-  githubActionsOidcSubject,
-} from "./github-oidc";
+import { GITHUB, cdkBootstrapRoleArns, githubActionsOidcSubject } from "./github-oidc";
 
 describe("githubActionsOidcSubject", () => {
   it("locks the prod role to the GitHub prod environment", () => {
@@ -25,11 +20,5 @@ describe("githubActionsOidcSubject", () => {
       "arn:aws:iam::449952321849:role/cdk-hnb659fds-file-publishing-role-449952321849-eu-central-1",
       "arn:aws:iam::449952321849:role/cdk-hnb659fds-lookup-role-449952321849-eu-central-1",
     ]);
-  });
-
-  it("builds the GitHub Actions CDK role ARN", () => {
-    expect(githubActionsCdkRoleArn("449952321849")).toBe(
-      "arn:aws:iam::449952321849:role/GitHubActionsCDKRole",
-    );
   });
 });
