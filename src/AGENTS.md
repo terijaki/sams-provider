@@ -1,3 +1,20 @@
 Domain logic: event contracts, projections, adaptive match refresh, sync jobs.
 
-Event payloads must stay versioned and bounded. The consumer contract lives in the [`sams-provider-events`](../packages/sams-provider-events/) npm package; the provider re-exports it from `src/events/schemas.ts`. Provider-only publishing helpers live in `sams-provider-events/provider`.
+Event payloads must stay versioned and bounded. The consumer contract lives in [`packages/sams-provider-events/`](../packages/sams-provider-events/).
+
+Provider code imports the contract through [`src/events/schemas.ts`](events/schemas.ts), which re-exports the npm package plus publishing helpers from `sams-provider-events/provider`. That keeps a single import path (`@src/events/schemas` / `../events/schemas`) for sync and lambda code instead of splitting imports across two package entry points.
+
+## Consumer documentation
+
+Audience: club app developers installing `sams-provider-events` or registering for event delivery.
+
+Consumer-facing docs live in the root README, [`docs/consumers/`](../docs/consumers/), and [`packages/sams-provider-events/README.md`](../packages/sams-provider-events/README.md).
+
+When editing those files:
+
+- Focus on what club apps receive and how to use types, schemas, and parsers.
+- Do not include maintainer workflow (npm publish, CI, `vp pack`, contract-test mechanics, version-bump rules).
+- Do not add export inventory tables or other design-conversation context.
+- Link to other docs naturally — avoid labels like "human-readable".
+
+Maintainer notes for the events package (publish workflow, contract file paths) belong here or in [`docs/`](../docs/), not in the npm README.
