@@ -15,6 +15,17 @@ export const samsClubSchema = z.object({
   ttl: z.number().int().positive(),
 });
 
+export const samsAssociationSchema = z.object({
+  uuid: z.string().min(1),
+  type: z.literal("association").default("association"),
+  name: z.string().min(1),
+  nameSlug: z.string().min(1),
+  updatedAt: z.iso.datetime(),
+  lastSyncedAt: z.iso.datetime(),
+  source: z.literal("sams").default("sams"),
+  ttl: z.number().int().positive(),
+});
+
 export const samsTeamSchema = z.object({
   uuid: z.string().min(1),
   type: z.literal("team").default("team"),
@@ -115,6 +126,7 @@ export const samsSyncMetaSchema = z.object({
 });
 
 export type SamsClubInput = z.infer<typeof samsClubSchema>;
+export type SamsAssociationInput = z.infer<typeof samsAssociationSchema>;
 export type SamsTeamInput = z.infer<typeof samsTeamSchema>;
 export type SamsRosterInput = z.infer<typeof samsRosterSchema>;
 export type SamsSeasonInput = z.infer<typeof samsSeasonSchema>;

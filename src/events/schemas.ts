@@ -73,10 +73,8 @@ export const clubSeasonTeamsPayloadSchema = z.object({
 });
 
 export const clubsSyncCompletedPayloadSchema = z.object({
-  associationUuid: z.string().min(1),
-  associationName: z.string().min(1),
-  clubsCount: z.number().int().nonnegative(),
-  changedClubUuids: z.array(z.string().min(1)),
+  associationsInvoked: z.number().int().nonnegative(),
+  associationUuids: z.array(z.string().min(1)),
 });
 
 export const teamsSyncCompletedPayloadSchema = z.object({

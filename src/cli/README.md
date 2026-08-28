@@ -43,22 +43,21 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 
 ### Flags
 
-| Flag            | Required | Default                                                   | Meaning                                                                      |
-| --------------- | -------- | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `--club`        | yes      | —                                                         | Exact SAMS club name, or a 36-character UUID                                 |
-| `--account`     | yes      | —                                                         | 12-digit **consumer** AWS account ID                                         |
-| `--environment` | no       | `prod`                                                    | Provider bus to update. `dev` is tests only.                                 |
-| `--association` | no       | —                                                         | Narrow name lookup to one configured association (name, short name, or UUID) |
-| `--consumer-id` | no       | slug of the club + environment (`club-name-prod`)         | Stable id stored in SSM                                                      |
-| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Queue ARN from the registration issue                                        |
-| `--table-name`  | no       | `sams-provider-data-{env}`                                | Provider DynamoDB table for club stub upsert                                 |
+| Flag            | Required | Default                                                   | Meaning                                      |
+| --------------- | -------- | --------------------------------------------------------- | -------------------------------------------- |
+| `--club`        | yes      | —                                                         | Exact SAMS club name, or a 36-character UUID |
+| `--account`     | yes      | —                                                         | 12-digit **consumer** AWS account ID         |
+| `--environment` | no       | `prod`                                                    | Provider bus to update. `dev` is tests only. |
+| `--consumer-id` | no       | slug of the club + environment (`club-name-prod`)         | Stable id stored in SSM                      |
+| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Queue ARN from the registration issue        |
+| `--table-name`  | no       | `sams-provider-data-{env}`                                | Provider DynamoDB table for club stub upsert |
 
 `--environment` selects which provider SSM prefix and event bus to update (`/sams-provider/prod` vs `/sams-provider/dev`). It is not the consumer's CDK branch.
 
 ## What it writes
 
-1. **Resolves the club** against SAMS by searching every association in SSM `sync/associations` (not SBVV only). Name lookup is case-insensitive via slug. Use `--association` when the name is ambiguous, or pass the UUID. If the club's association is not yet in `sync/associations`, add it there first (or register by UUID after a prior stub exists in DynamoDB from another path).
-2. **DynamoDB** provider data table — club stub with `associationUuid` and name so teams sync can scope leagues before the next full clubs sync.
+1. **Resolves the club** from the provider DynamoDB club index when possible (weekly clubs sync), otherwise from SAMS across cached associations. Name lookup is case-insensitive via slug; pass the UUID when ambiguous.
+2. **DynamoDB** provider data table — club stub with `associationUuid` and name so teams sync can scope leagues before the next clubs sync.
 3. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 4. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
 5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in `src/events/schemas.ts`.
@@ -71,16 +70,16 @@ Deploy the consumer queue **before** running this CLI. EventBridge `PutTargets` 
 
 ## Failures
 
-| Symptom                                             | Likely cause                                                                              |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Club was not found                                  | Name does not match SAMS in any configured association; try the UUID or `--association`   |
-| Club is ambiguous                                   | Same slug in multiple associations; pass the UUID or `--association`                      |
-| Club UUID was not found                             | Wrong UUID or SAMS key/environment                                                        |
-| No associations configured in SSM sync/associations | Add the club's association to `/sams-provider/{env}/sync/associations` before name lookup |
-| Failed to search clubs in SAMS                      | API key missing or SAMS unreachable                                                       |
-| `--account` must be 12 digits                       | Account ID is missing digits or has extra characters                                      |
-| SSM / EventBridge access denied                     | Wrong credentials (must be the provider account)                                          |
-| Failed to wire EventBridge                          | Queue missing, wrong ARN, or missing SQS policy                                           |
-| Queue never receives events                         | Queue missing, wrong account/ARN, or missing SQS policy                                   |
+| Symptom                                   | Likely cause                                            |
+| ----------------------------------------- | ------------------------------------------------------- |
+| Club was not found                        | Name not in index yet; try UUID or run clubs sync first |
+| Club is ambiguous                         | Same slug in multiple associations; pass the UUID       |
+| Club UUID was not found                   | Wrong UUID or SAMS key/environment                      |
+| No associations in the provider index yet | Run clubs sync or pass the club UUID                    |
+| Failed to search clubs in SAMS            | API key missing or SAMS unreachable                     |
+| `--account` must be 12 digits             | Account ID is missing digits or has extra characters    |
+| SSM / EventBridge access denied           | Wrong credentials (must be the provider account)        |
+| Failed to wire EventBridge                | Queue missing, wrong ARN, or missing SQS policy         |
+| Queue never receives events               | Queue missing, wrong account/ARN, or missing SQS policy |
 
 Stdout is JSON with the persisted `club` and `consumer` records on success.

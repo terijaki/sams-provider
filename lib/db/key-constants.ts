@@ -1,6 +1,7 @@
 export const SK_METADATA = "METADATA";
 
 export const samsClubPk = (sportsclubUuid: string): string => `club#${sportsclubUuid}`;
+export const samsAssociationPk = (uuid: string): string => `association#${uuid}`;
 export const samsTeamPk = (uuid: string): string => `team#${uuid}`;
 export const samsRosterPk = (teamUuid: string): string => `roster#${teamUuid}`;
 export const samsSeasonPk = (uuid: string): string => `season#${uuid}`;

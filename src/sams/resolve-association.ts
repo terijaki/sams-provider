@@ -1,8 +1,12 @@
-import type { AssociationConfig } from "../config/schema";
-
 type SamsPage<T> = {
   data?: { content?: T[]; last?: boolean };
   error?: unknown;
+};
+
+export type AssociationRef = {
+  name: string;
+  uuid?: string;
+  shortName?: string;
 };
 
 export type AssociationResolverSams = {
@@ -17,7 +21,7 @@ export type AssociationResolverSams = {
 
 export async function resolveAssociationUuid(
   sams: AssociationResolverSams,
-  association: AssociationConfig,
+  association: AssociationRef,
 ): Promise<string> {
   if (association.uuid) {
     const { data, error } = await sams.getAssociationByUuid({ path: { uuid: association.uuid } });

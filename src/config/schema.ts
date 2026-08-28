@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-export const associationConfigSchema = z.object({
-  name: z.string().min(1),
-  shortName: z.string().optional(),
-  uuid: z.string().optional(),
-});
-
 export const clubSubscriptionSchema = z.object({
   uuid: z.string().min(1),
   name: z.string().min(1),
@@ -38,14 +32,12 @@ export const matchRefreshPolicySchema = z.object({
 });
 
 export const providerRuntimeConfigSchema = z.object({
-  associations: z.array(associationConfigSchema),
   clubs: z.array(clubSubscriptionSchema),
   consumers: z.array(consumerConfigSchema),
   matchRefreshPolicy: matchRefreshPolicySchema,
   samsApiKey: z.string().min(1),
 });
 
-export type AssociationConfig = z.infer<typeof associationConfigSchema>;
 export type ClubSubscription = z.infer<typeof clubSubscriptionSchema>;
 export type ConsumerConfig = z.infer<typeof consumerConfigSchema>;
 export type MatchRefreshPolicy = z.infer<typeof matchRefreshPolicySchema>;
@@ -71,7 +63,7 @@ export function ssmPrefix(environment: string, branch = ""): string {
 
 export function ssmParameterPath(
   environment: string,
-  key: "sync/associations" | "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy",
+  key: "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy",
   branch = "",
 ): string {
   return `${ssmPrefix(environment, branch)}/${key}`;

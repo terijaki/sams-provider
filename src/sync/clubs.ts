@@ -1,10 +1,9 @@
 import type { DomainEventPublisher } from "../events/publisher";
 import { createEventEnvelope, EventType, snapshotVersion } from "../events/schemas";
+import { SAMS_ENTITY_TTL_DAYS } from "../config/constants";
 import { logoObjectKey, publicLogoUrl, resolveClubLogo } from "../logos/preserve";
-import { resolveAssociationUuid } from "../sams/resolve-association";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
 import { slugify } from "@utils/slugify";
-import type { AssociationConfig } from "../config/schema";
 
 export type LogoUploader = (args: {
   sportsclubUuid: string;
@@ -38,7 +37,7 @@ type SamsPage<T> = {
   response?: { status?: number };
 };
 
-export type ClubsSyncSams = {
+export type AssociationClubsSyncSams = {
   getAllSportsclubs(args: { query: { association: string; page: number; size: number } }): Promise<
     SamsPage<{
       uuid?: string;
@@ -47,16 +46,18 @@ export type ClubsSyncSams = {
       logoImageLink?: string | null;
     }>
   >;
-  getAssociations(args: {
-    query: { page: number; size: number };
-  }): Promise<SamsPage<{ name?: string; uuid?: string }>>;
-  getAssociationByUuid(args: { path: { uuid: string } }): Promise<{
-    data?: { name?: string; uuid?: string };
+  getSportsclub(args: { path: { uuid: string } }): Promise<{
+    data?: {
+      uuid?: string;
+      name?: string;
+      logoImageLink?: string | null;
+      associationUuid?: string | null;
+    };
     error?: unknown;
   }>;
 };
 
-export type ClubsSyncRepos = {
+export type AssociationClubsSyncRepos = {
   clubs: {
     listAll(): Promise<ClubListItem[]>;
     upsertMany(items: ClubUpsertItem[]): Promise<void>;
@@ -72,27 +73,25 @@ export type ClubsSyncRepos = {
   };
 };
 
-export type SyncClubsResult = {
+export type SyncAssociationClubsResult = {
   clubsCount: number;
-  changedClubUuids: string[];
-  associationUuids: string[];
+  changedRegisteredClubUuids: string[];
 };
 
-export async function syncClubs(args: {
-  sams: ClubsSyncSams;
-  repos: ClubsSyncRepos;
+export async function syncAssociationClubs(args: {
+  sams: AssociationClubsSyncSams;
+  repos: AssociationClubsSyncRepos;
   publisher: DomainEventPublisher;
-  associations: AssociationConfig[];
+  associationUuid: string;
+  associationName: string;
+  registeredClubUuids: Set<string>;
   publicLogoBaseUrl: string;
   uploadLogo: LogoUploader;
   sourceSyncId: string;
   sleep?: (ms: number) => Promise<void>;
-}): Promise<SyncClubsResult> {
+}): Promise<SyncAssociationClubsResult> {
+  const sleep = args.sleep ?? defaultSleep;
   const startedAt = Date.now();
-  if (args.associations.length === 0) {
-    throw new Error("No associations configured for clubs sync");
-  }
-
   const existingClubs = await args.repos.clubs.listAll();
   const existingLogoMap = new Map(
     existingClubs.map((club) => [
@@ -101,64 +100,15 @@ export async function syncClubs(args: {
     ]),
   );
 
-  let clubsCount = 0;
-  const changedClubUuids: string[] = [];
-  const associationUuids: string[] = [];
-  const events: ReturnType<typeof createEventEnvelope>[] = [];
-
-  for (const association of args.associations) {
-    const associationResult = await syncClubsForAssociation({
-      ...args,
-      association,
-      existingClubs,
-      existingLogoMap,
-    });
-    clubsCount += associationResult.clubsCount;
-    changedClubUuids.push(...associationResult.changedClubUuids);
-    associationUuids.push(associationResult.associationUuid);
-    events.push(...associationResult.events);
-  }
-
-  await args.publisher.publish(events);
-  await args.repos.syncMeta.put({
-    job: "clubs",
-    status: "success",
-    durationMs: Date.now() - startedAt,
-    itemCount: clubsCount,
-  });
-
-  return { clubsCount, changedClubUuids, associationUuids };
-}
-
-async function syncClubsForAssociation(args: {
-  sams: ClubsSyncSams;
-  repos: ClubsSyncRepos;
-  association: AssociationConfig;
-  existingClubs: ClubListItem[];
-  existingLogoMap: Map<string, { logoImageLink?: string; logoS3Key?: string }>;
-  publicLogoBaseUrl: string;
-  uploadLogo: LogoUploader;
-  sourceSyncId: string;
-  sleep?: (ms: number) => Promise<void>;
-}): Promise<{
-  clubsCount: number;
-  changedClubUuids: string[];
-  associationUuid: string;
-  events: ReturnType<typeof createEventEnvelope>[];
-}> {
-  const sleep = args.sleep ?? defaultSleep;
-  const associationUuid = await resolveAssociationUuid(args.sams, args.association);
-
   let currentPage = 0;
   let hasMorePages = true;
   let clubsCount = 0;
-  const changedClubUuids: string[] = [];
-  const upsertedByUuid = new Map<string, ClubUpsertItem>();
+  const changedRegisteredClubUuids: string[] = [];
   const events: ReturnType<typeof createEventEnvelope>[] = [];
 
   while (hasMorePages) {
     const { data, error, response } = await args.sams.getAllSportsclubs({
-      query: { association: associationUuid, page: currentPage, size: 100 },
+      query: { association: args.associationUuid, page: currentPage, size: 100 },
     });
     if (error) {
       throw new Error(`Error ${response?.status ?? "unknown"} fetching clubs page ${currentPage}`);
@@ -169,49 +119,123 @@ async function syncClubsForAssociation(args: {
       if (!club.uuid || !club.name) {
         continue;
       }
-      const existing = args.existingLogoMap.get(club.uuid);
-      const resolved = resolveClubLogo({
-        incomingLogoUrl: club.logoImageLink,
-        existing,
-      });
-      let logoS3Key = resolved.existingS3Key;
-      if (resolved.shouldUpload && resolved.logoImageLink) {
-        const uploaded = await args.uploadLogo({
+
+      const existingRow = existingClubs.find((row) => row.sportsclubUuid === club.uuid);
+      const associationUuid = club.associationUuid ?? args.associationUuid;
+      const associationName = args.associationName;
+      const dataChanged =
+        !existingRow ||
+        clubDataSnapshot({
+          name: club.name,
+          associationUuid,
+          associationName,
+        }) !==
+          clubDataSnapshot({
+            name: existingRow.name,
+            associationUuid: existingRow.associationUuid,
+            associationName: existingRow.associationName,
+          });
+
+      const existingLogo = existingLogoMap.get(club.uuid);
+      let logoImageLink: string | undefined;
+      let logoS3Key: string | undefined;
+
+      if (!existingRow) {
+        const resolved = await resolveLogoForClub({
+          sams: args.sams,
           sportsclubUuid: club.uuid,
-          logoUrl: resolved.logoImageLink,
+          incomingLogoUrl: club.logoImageLink,
+          existing: existingLogo,
+          fetchDetail: true,
         });
-        if (uploaded) {
-          logoS3Key = uploaded;
+        logoImageLink = resolved.logoImageLink;
+        logoS3Key = resolved.existingS3Key;
+        if (resolved.shouldUpload && resolved.logoImageLink) {
+          const uploaded = await args.uploadLogo({
+            sportsclubUuid: club.uuid,
+            logoUrl: resolved.logoImageLink,
+          });
+          if (uploaded) {
+            logoS3Key = uploaded;
+          }
         }
+      } else if (dataChanged) {
+        const resolved = await resolveLogoForClub({
+          sams: args.sams,
+          sportsclubUuid: club.uuid,
+          incomingLogoUrl: club.logoImageLink,
+          existing: existingLogo,
+          fetchDetail: !club.logoImageLink,
+        });
+        logoImageLink = resolved.logoImageLink;
+        logoS3Key = resolved.existingS3Key;
+        if (resolved.shouldUpload && resolved.logoImageLink) {
+          const uploaded = await args.uploadLogo({
+            sportsclubUuid: club.uuid,
+            logoUrl: resolved.logoImageLink,
+          });
+          if (uploaded) {
+            logoS3Key = uploaded;
+          }
+        }
+      } else {
+        const resolved = resolveClubLogo({
+          incomingLogoUrl: null,
+          existing: existingLogo,
+        });
+        logoImageLink = resolved.logoImageLink;
+        logoS3Key = resolved.existingS3Key;
       }
+
       const item: ClubUpsertItem = {
         sportsclubUuid: club.uuid,
         name: club.name,
         nameSlug: slugify(club.name),
-        ...(club.associationUuid ? { associationUuid: club.associationUuid } : { associationUuid }),
-        associationName: args.association.name,
-        ...(resolved.logoImageLink ? { logoImageLink: resolved.logoImageLink } : {}),
+        associationUuid,
+        associationName,
+        ...(logoImageLink ? { logoImageLink } : {}),
         ...(logoS3Key ? { logoS3Key } : {}),
-        ttl: unixTtlFromNow(30),
+        ttl: unixTtlFromNow(SAMS_ENTITY_TTL_DAYS),
       };
       pageItems.push(item);
-      upsertedByUuid.set(club.uuid, item);
 
-      const previous = args.existingClubs.find((row) => row.sportsclubUuid === club.uuid);
-      const nextHash = snapshotVersion({
-        name: item.name,
-        logoS3Key: item.logoS3Key,
-        logoImageLink: item.logoImageLink,
-      });
-      const previousHash = previous
-        ? snapshotVersion({
-            name: previous.name,
-            logoS3Key: previous.logoS3Key,
-            logoImageLink: previous.logoImageLink,
-          })
-        : undefined;
-      if (nextHash !== previousHash) {
-        changedClubUuids.push(club.uuid);
+      const projectionChanged =
+        !existingRow ||
+        clubProjectionSnapshot({
+          name: item.name,
+          associationUuid: item.associationUuid,
+          associationName: item.associationName,
+          logoS3Key: item.logoS3Key,
+          logoImageLink: item.logoImageLink,
+        }) !==
+          clubProjectionSnapshot({
+            name: existingRow.name,
+            associationUuid: existingRow.associationUuid,
+            associationName: existingRow.associationName,
+            logoS3Key: existingRow.logoS3Key,
+            logoImageLink: existingRow.logoImageLink,
+          });
+
+      if (args.registeredClubUuids.has(club.uuid) && projectionChanged) {
+        changedRegisteredClubUuids.push(club.uuid);
+        events.push(
+          createEventEnvelope({
+            type: EventType.clubUpdated,
+            sourceSyncId: args.sourceSyncId,
+            payload: {
+              uuid: item.sportsclubUuid,
+              name: item.name,
+              slug: item.nameSlug,
+              associationUuid: item.associationUuid,
+              associationName: item.associationName,
+              logoUrl: publicLogoUrl({
+                publicBaseUrl: args.publicLogoBaseUrl,
+                logoS3Key: item.logoS3Key,
+                fallbackImageLink: item.logoImageLink,
+              }),
+            },
+          }),
+        );
       }
     }
 
@@ -227,45 +251,74 @@ async function syncClubsForAssociation(args: {
     }
   }
 
-  events.push(
-    createEventEnvelope({
-      type: EventType.clubsSyncCompleted,
-      sourceSyncId: args.sourceSyncId,
-      payload: {
-        associationUuid,
-        associationName: args.association.name,
-        clubsCount,
-        changedClubUuids,
-      },
-    }),
-  );
+  await args.publisher.publish(events);
+  await args.repos.syncMeta.put({
+    job: `clubs-${args.associationUuid}`,
+    status: "success",
+    durationMs: Date.now() - startedAt,
+    itemCount: clubsCount,
+  });
 
-  for (const uuid of changedClubUuids) {
-    const club = upsertedByUuid.get(uuid);
-    if (!club) {
-      continue;
-    }
-    events.push(
-      createEventEnvelope({
-        type: EventType.clubUpdated,
-        sourceSyncId: args.sourceSyncId,
-        payload: {
-          uuid: club.sportsclubUuid,
-          name: club.name,
-          slug: club.nameSlug,
-          ...(club.associationUuid ? { associationUuid: club.associationUuid } : {}),
-          ...(club.associationName ? { associationName: club.associationName } : {}),
-          logoUrl: publicLogoUrl({
-            publicBaseUrl: args.publicLogoBaseUrl,
-            logoS3Key: club.logoS3Key,
-            fallbackImageLink: club.logoImageLink,
-          }),
-        },
-      }),
-    );
+  return { clubsCount, changedRegisteredClubUuids };
+}
+
+async function resolveLogoForClub(args: {
+  sams: AssociationClubsSyncSams;
+  sportsclubUuid: string;
+  incomingLogoUrl: string | null | undefined;
+  existing?: { logoImageLink?: string; logoS3Key?: string };
+  fetchDetail: boolean;
+}): Promise<{
+  logoImageLink?: string;
+  shouldUpload: boolean;
+  existingS3Key?: string;
+}> {
+  const resolved = resolveClubLogo({
+    incomingLogoUrl: args.incomingLogoUrl,
+    existing: args.existing,
+  });
+  if (resolved.logoImageLink) {
+    return resolved;
   }
+  if (!args.fetchDetail) {
+    return resolved;
+  }
+  const { data, error } = await args.sams.getSportsclub({ path: { uuid: args.sportsclubUuid } });
+  if (error || !data?.uuid) {
+    return resolved;
+  }
+  return resolveClubLogo({
+    incomingLogoUrl: data.logoImageLink,
+    existing: args.existing,
+  });
+}
 
-  return { clubsCount, changedClubUuids, associationUuid, events };
+function clubDataSnapshot(club: {
+  name: string;
+  associationUuid?: string;
+  associationName?: string;
+}): string {
+  return snapshotVersion({
+    name: club.name,
+    associationUuid: club.associationUuid,
+    associationName: club.associationName,
+  });
+}
+
+function clubProjectionSnapshot(club: {
+  name: string;
+  associationUuid?: string;
+  associationName?: string;
+  logoS3Key?: string;
+  logoImageLink?: string;
+}): string {
+  return snapshotVersion({
+    name: club.name,
+    associationUuid: club.associationUuid,
+    associationName: club.associationName,
+    logoS3Key: club.logoS3Key,
+    logoImageLink: club.logoImageLink,
+  });
 }
 
 export async function fetchLogoAndKey(args: {

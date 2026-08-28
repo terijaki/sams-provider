@@ -1,6 +1,5 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import {
-  associationConfigSchema,
   clubSubscriptionSchema,
   consumerConfigSchema,
   DEFAULT_MATCH_REFRESH_POLICY,
@@ -10,11 +9,7 @@ import {
   type ProviderRuntimeConfig,
 } from "./schema";
 
-type SyncParameterKey =
-  | "sync/associations"
-  | "sync/clubs"
-  | "sync/consumers"
-  | "sync/match-refresh-policy";
+type SyncParameterKey = "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy";
 
 function syncParameterPath(ssmPrefix: string, key: SyncParameterKey): string {
   return `${ssmPrefix}/${key}`;
@@ -34,9 +29,8 @@ export async function loadProviderRuntimeConfig(args: {
     return cached.value;
   }
 
-  const [apiKey, associationsRaw, clubsRaw, consumersRaw, policyRaw] = await Promise.all([
+  const [apiKey, clubsRaw, consumersRaw, policyRaw] = await Promise.all([
     getParameter(args.ssm, samsApiKeyParameterPath(), true),
-    getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/associations")),
     getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/clubs")),
     getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/consumers")),
     getOptionalParameter(args.ssm, syncParameterPath(args.ssmPrefix, "sync/match-refresh-policy")),
@@ -44,8 +38,6 @@ export async function loadProviderRuntimeConfig(args: {
 
   const value = providerRuntimeConfigSchema.parse({
     samsApiKey: apiKey,
-    // CDK seeds sync/associations in SSM; do not silently default to SBVV at runtime.
-    associations: parseJsonArray(associationsRaw, associationConfigSchema, []),
     clubs: parseJsonArray(clubsRaw, clubSubscriptionSchema, []),
     consumers: parseJsonArray(consumersRaw, consumerConfigSchema, []),
     matchRefreshPolicy: policyRaw

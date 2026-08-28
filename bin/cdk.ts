@@ -82,7 +82,6 @@ if (isShared) {
     ...commonStackProps,
     description: `SAMS sync and refresh jobs (${envLabel})`,
     samsDataTableName: dataStack.samsDataTableName,
-    cacheTableName: dataStack.cacheTableName,
     logoBucketName: mediaStack.bucketName,
     publicLogoBaseUrl: mediaStack.publicBaseUrl,
     eventBusName: eventStack.eventBusName,
@@ -94,7 +93,12 @@ if (isShared) {
         ...commonStackProps,
         description: `Monitoring (${envLabel})`,
         alertEmail,
-        syncLambdas: [syncStack.clubsSync, syncStack.teamsSync, syncStack.matchRefresh],
+        syncLambdas: [
+          syncStack.clubsSyncCoordinator,
+          syncStack.clubsSyncWorker,
+          syncStack.teamsSync,
+          syncStack.matchRefresh,
+        ],
       });
     } else if (isProd) {
       console.error("CDK_ALERT_EMAIL is required for production");

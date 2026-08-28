@@ -44,133 +44,82 @@ describe("parseRegisterArgs", () => {
       consumerId: undefined,
       queueArn: undefined,
       environment: "prod",
-      association: undefined,
       tableName: undefined,
-    });
-  });
-
-  it("reads optional flags including internal-test environment", () => {
-    expect(
-      parseRegisterArgs([
-        "--club",
-        "Example Club",
-        "--account",
-        "123456789012",
-        "--environment",
-        "dev",
-        "--consumer-id",
-        "example-club-dev",
-        "--queue-arn",
-        "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
-        "--association",
-        "Other Association",
-        "--table-name",
-        "custom-table",
-      ]),
-    ).toEqual({
-      club: "Example Club",
-      account: "123456789012",
-      consumerId: "example-club-dev",
-      queueArn: "arn:aws:sqs:eu-central-1:123456789012:custom-queue",
-      environment: "dev",
-      association: "Other Association",
-      tableName: "custom-table",
     });
   });
 });
 
 describe("resolveClub", () => {
-  const associations = [
-    { name: "SBVV", uuid: "assoc-1", shortName: "SBVV" },
-    { name: "Other Association", uuid: "assoc-2" },
-  ];
+  const associationsRepo = {
+    listAll: async () => [],
+  };
+  const clubsRepo = {
+    getByNameSlug: async () => null,
+  };
 
-  it("searches across all configured associations for a name match", async () => {
-    const sams = {
-      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
-      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
-        data: {
-          uuid: path.uuid,
-          name: path.uuid === "assoc-1" ? "SBVV" : "Other Association",
-        },
-        error: undefined,
-      }),
-      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
-      getAllSportsclubs: async ({
-        query,
-      }: {
-        query: { association: string; page: number; size: number };
-      }) => ({
-        data: {
-          content:
-            query.association === "assoc-2"
-              ? [{ uuid: "club-2", name: "Other Club", associationUuid: "assoc-2" }]
-              : [],
-          last: true,
-        },
-        error: undefined,
-      }),
+  it("resolves a club name from the DynamoDB index when present", async () => {
+    const indexedClubsRepo = {
+      getByNameSlug: async (slug: string) =>
+        slug === "other-club"
+          ? {
+              sportsclubUuid: "club-2",
+              type: "club" as const,
+              name: "Other Club",
+              nameSlug: "other-club",
+              associationUuid: "assoc-2",
+              associationName: "Assoc Two",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+              lastSyncedAt: "2026-01-01T00:00:00.000Z",
+              source: "sams" as const,
+              ttl: 1,
+            }
+          : null,
     };
 
-    const club = await resolveClub(sams, "Other Club", associations);
+    const club = await resolveClub({
+      sams: {
+        getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
+        getAllSportsclubs: async () => ({ data: { content: [], last: true }, error: undefined }),
+        getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
+        getAssociationByUuid: async () => ({ data: undefined, error: undefined }),
+      },
+      clubsRepo: indexedClubsRepo,
+      associationsRepo,
+      nameOrUuid: "Other Club",
+    });
+
     expect(club).toEqual({
       uuid: "club-2",
       name: "Other Club",
       associationUuid: "assoc-2",
-      associationName: "Other Association",
+      associationName: "Assoc Two",
     });
   });
 
-  it("narrows search with --association", async () => {
+  it("falls back to SAMS when the index misses", async () => {
     const sams = {
       getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
-      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
-        data: { uuid: path.uuid, name: "SBVV" },
+      getAssociationByUuid: async () => ({ data: undefined, error: undefined }),
+      getAssociations: async () => ({
+        data: { content: [{ uuid: "assoc-2", name: "Assoc Two" }], last: true },
         error: undefined,
       }),
-      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
-      getAllSportsclubs: async ({
-        query,
-      }: {
-        query: { association: string; page: number; size: number };
-      }) => ({
-        data: {
-          content:
-            query.association === "assoc-1"
-              ? [{ uuid: "club-1", name: "Shared Name", associationUuid: "assoc-1" }]
-              : [],
-          last: true,
-        },
-        error: undefined,
-      }),
-    };
-
-    const club = await resolveClub(sams, "Shared Name", associations, "SBVV");
-    expect(club.uuid).toBe("club-1");
-  });
-
-  it("reports ambiguity across associations", async () => {
-    const sams = {
-      getSportsclub: async () => ({ data: undefined, error: { message: "unused" } }),
-      getAssociationByUuid: async ({ path }: { path: { uuid: string } }) => ({
-        data: {
-          uuid: path.uuid,
-          name: path.uuid === "assoc-1" ? "SBVV" : "Other Association",
-        },
-        error: undefined,
-      }),
-      getAssociations: async () => ({ data: { content: [], last: true }, error: undefined }),
       getAllSportsclubs: async () => ({
         data: {
-          content: [{ uuid: "club-x", name: "Shared Name", associationUuid: "assoc-1" }],
+          content: [{ uuid: "club-2", name: "Other Club", associationUuid: "assoc-2" }],
           last: true,
         },
         error: undefined,
       }),
     };
 
-    await expect(resolveClub(sams, "Shared Name", associations)).rejects.toThrow(
-      'Club "Shared Name" is ambiguous',
-    );
+    const club = await resolveClub({
+      sams,
+      clubsRepo,
+      associationsRepo,
+      nameOrUuid: "Other Club",
+    });
+
+    expect(club.uuid).toBe("club-2");
   });
 });
