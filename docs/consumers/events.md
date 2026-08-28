@@ -118,6 +118,49 @@ Every event shares this shape (`SamsEvent`):
 
 ---
 
+### `sams.club-season-rosters.updated`
+
+**When:** After each current-season teams sync — one event per registered club with the **full** roster snapshot for every current-season team (not a diff).
+
+**Payload:**
+
+| Field         | Type              | Description                                      |
+| ------------- | ----------------- | ------------------------------------------------ |
+| `club`        | Club              | Registered club                                  |
+| `season`      | Season            | Current season                                   |
+| `rosters`     | TeamRosterEntry[] | Squad lists keyed by team                        |
+| `projectedAt` | ISO datetime      | When the provider built the projection           |
+| `cachedAt`    | ISO datetime      | Latest roster fetch time among included teams    |
+| `isStale`     | boolean           | `true` when roster refresh could not run in time |
+
+**TeamRosterEntry** contains `team` (with `sportsclubUuid`), `players[]`, and `officials[]`.
+
+**Use:** Replace your stored roster list for the club/season. Teams without a stored roster are omitted from `rosters`.
+
+---
+
+### `sams.team-roster.updated`
+
+**When:** A registered club’s team roster changes during teams sync (create, update, or delete).
+
+**Payload:**
+
+| Field         | Type             | Description                                       |
+| ------------- | ---------------- | ------------------------------------------------- |
+| `team`        | Team + club      | Team metadata plus owning `sportsclubUuid`        |
+| `season`      | Season           | Current season                                    |
+| `players`     | RosterPlayer[]   | Normalized players (`portraitUrl` when available) |
+| `officials`   | RosterOfficial[] | Normalized officials                              |
+| `projectedAt` | ISO datetime     | When the provider built the projection            |
+| `cachedAt`    | ISO datetime     | When roster data was fetched                      |
+| `isStale`     | boolean          | `true` when roster refresh could not run in time  |
+
+**404 handling:** SAMS sometimes returns 404 for roster endpoints even when squad data exists. The provider keeps the previous roster in that case and does **not** emit `sams.team-roster.updated`. When SAMS returns an empty roster successfully, the provider stores and publishes empty `players` / `officials` arrays.
+
+**Use:** Upsert one team’s squad list. Empty arrays mean the squad was cleared or the team was removed.
+
+---
+
 ### `sams.club-match-schedule.updated`
 
 **When:** Match refresh affects a registered club (including initial bootstrap).

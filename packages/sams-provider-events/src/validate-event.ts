@@ -1,6 +1,7 @@
 import {
   clubMatchSchedulePayloadSchema,
   clubProjectionSchema,
+  clubSeasonRostersPayloadSchema,
   clubSeasonTeamsPayloadSchema,
   clubsSyncCompletedPayloadSchema,
   eventEnvelopeSchema,
@@ -8,6 +9,7 @@ import {
   matchBlockUpdatedPayloadSchema,
   syncFailedPayloadSchema,
   teamsSyncCompletedPayloadSchema,
+  teamRosterUpdatedPayloadSchema,
 } from "./schemas";
 import {
   EVENT_SCHEMA_VERSION,
@@ -45,6 +47,14 @@ function buildSamsEvent(args: {
     case SamsEventType.clubSeasonTeamsUpdated: {
       const payload = clubSeasonTeamsPayloadSchema.parse(args.payload);
       return { ...envelopeBase, type: SamsEventType.clubSeasonTeamsUpdated, payload };
+    }
+    case SamsEventType.clubSeasonRostersUpdated: {
+      const payload = clubSeasonRostersPayloadSchema.parse(args.payload);
+      return { ...envelopeBase, type: SamsEventType.clubSeasonRostersUpdated, payload };
+    }
+    case SamsEventType.teamRosterUpdated: {
+      const payload = teamRosterUpdatedPayloadSchema.parse(args.payload);
+      return { ...envelopeBase, type: SamsEventType.teamRosterUpdated, payload };
     }
     case SamsEventType.clubMatchScheduleUpdated: {
       const payload = clubMatchSchedulePayloadSchema.parse(args.payload);

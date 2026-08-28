@@ -72,4 +72,24 @@ describe("createEventEnvelope", () => {
     expect(event.payload.matches).toHaveLength(1);
     expect(event.snapshotVersion).toHaveLength(16);
   });
+
+  it("creates roster event envelopes", () => {
+    const clubRosters = createEventEnvelope({
+      type: SamsEventType.clubSeasonRostersUpdated,
+      sourceSyncId: "sync-1",
+      payload: contractPayloadFixtures[SamsEventType.clubSeasonRostersUpdated],
+    });
+    const teamRoster = createEventEnvelope({
+      type: SamsEventType.teamRosterUpdated,
+      sourceSyncId: "sync-1",
+      payload: contractPayloadFixtures[SamsEventType.teamRosterUpdated],
+    });
+
+    expect(clubRosters.type).toBe(SamsEventType.clubSeasonRostersUpdated);
+    expect(teamRoster.type).toBe(SamsEventType.teamRosterUpdated);
+    if (teamRoster.type !== SamsEventType.teamRosterUpdated) {
+      throw new Error("expected team roster event");
+    }
+    expect(teamRoster.payload.players).toHaveLength(1);
+  });
 });
