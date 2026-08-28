@@ -93,4 +93,4 @@ _Avoid_: 5-minute cache, cron poll
 
 ## Issue tracking
 
-Provider milestones and projection work: [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md). Parent PRD: [#1](https://github.com/terijaki/sams-provider/issues/1).
+Provider milestones and projection work: [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md). Original PRD ([#1](https://github.com/terijaki/sams-provider/issues/1)) — v1 scope delivered; see the issue tracker for open work.

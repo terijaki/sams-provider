@@ -2,53 +2,43 @@
 
 Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
-Public consumers request event delivery with the **Register as a consumer** template; everything else uses **General issue**. Consumer migration work stays in the consumer app repositories and remains blocked until provider events are stable.
+Public consumers request event delivery with the **Register as a consumer** template; everything else uses **General issue**. Consumer migration work stays in the consumer app repositories.
 
-## Parent PRD
+## Status
 
-| Issue                                                    | Title                               |
-| -------------------------------------------------------- | ----------------------------------- |
-| [#1](https://github.com/terijaki/sams-provider/issues/1) | PRD: SAMS provider (event-fed sync) |
+**PRD v1 provider scope is delivered.** The original parent PRD ([#1](https://github.com/terijaki/sams-provider/issues/1)) tracked the initial build-out; projection events, multi-association sync, and normalized payloads are live in prod.
 
-## Provider milestones
+Domain terminology and architecture: root [`CONTEXT.md`](../../CONTEXT.md) and [`docs/adr`](../adr).
 
-| Issue                                                      | Title                                                               | Status |
-| ---------------------------------------------------------- | ------------------------------------------------------------------- | ------ |
-| [#10](https://github.com/terijaki/sams-provider/issues/10) | Goal: register first consumer and verify EventBridge → SQS delivery | Open   |
+## Open issues
 
-## Projections (sub-issues of #1)
+| Issue                                                      | Title                                                               | Notes                                      |
+| ---------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------ |
+| [#10](https://github.com/terijaki/sams-provider/issues/10) | Goal: register first consumer and verify EventBridge → SQS delivery | Blocked on a real consumer queue + account |
+| [#11](https://github.com/terijaki/sams-provider/issues/11) | Investigate live ticker centralization                              | Out of PRD v1 scope                        |
 
-| Issue                                                      | Projection / event                                            | Status             |
-| ---------------------------------------------------------- | ------------------------------------------------------------- | ------------------ |
-| [#12](https://github.com/terijaki/sams-provider/issues/12) | `club-match-schedule`                                         | Not implemented    |
-| [#13](https://github.com/terijaki/sams-provider/issues/13) | Normalize `league-ranking` (sportsclub UUID + logo per entry) | Partial (raw SAMS) |
-| [#14](https://github.com/terijaki/sams-provider/issues/14) | Normalize `match-block` payload                               | Partial (raw SAMS) |
+## Delivered projections and events
 
-Implemented today: `club` (`sams.club.updated`), `club-season-teams` (`sams.club-season-teams.updated`).
+| Projection / event  | Event type                         | Issue | PR  |
+| ------------------- | ---------------------------------- | ----- | --- |
+| Club                | `sams.club.updated`                | —     | —   |
+| Club season teams   | `sams.club-season-teams.updated`   | —     | —   |
+| Match block         | `sams.match-block.updated`         | #14   | #22 |
+| League ranking      | `sams.league-ranking.updated`      | #13   | #20 |
+| Club match schedule | `sams.club-match-schedule.updated` | #12   | #22 |
 
-## Multi-association
+Sync summary events (`sams.clubs.sync.completed`, `sams.teams.sync.completed`) publish today. Per-job `sams.sync.completed` / `sams.sync.failed` are schema-only — see gaps below.
 
-| Issue                                                      | Title                                                        | Blocks   |
-| ---------------------------------------------------------- | ------------------------------------------------------------ | -------- |
-| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) | #13, #14 |
+## Delivered infrastructure
 
-SAMS host (`volleyball-baden.de`) ≠ association. Club index for all configured associations is required before ranking logo enrichment works for opponent teams.
+| Issue                                                      | Title                                                        | PR  |
+| ---------------------------------------------------------- | ------------------------------------------------------------ | --- |
+| [#16](https://github.com/terijaki/sams-provider/issues/16) | Multi-association sync and register (remove SBVV-only paths) | #19 |
+| [#18](https://github.com/terijaki/sams-provider/issues/18) | Full SAMS host club index (coordinator + workers)            | #19 |
 
-## Implementation order (handoff)
+## Next step
 
-1. **[#16](https://github.com/terijaki/sams-provider/issues/16)** — multi-association sync + register
-2. **[#13](https://github.com/terijaki/sams-provider/issues/13)** — league-ranking: team + `sportsclubUuid` + `logoUrl` per row (enrich from provider store; SAMS ranking API has no logos)
-3. **[#14](https://github.com/terijaki/sams-provider/issues/14)** — normalize `match-block` payload (shared match DTO)
-4. **[#12](https://github.com/terijaki/sams-provider/issues/12)** — `club-match-schedule` (reuse match DTO from #14)
-5. **[#10](https://github.com/terijaki/sams-provider/issues/10)** — first consumer registration (parallel when consumer SQS exists)
-
-GitHub dependencies: #13 → blocked by #16; #14 → blocked by #16; #12 → blocked by #14.
-
-## Out of PRD v1 scope
-
-| Issue                                                      | Title                                  |
-| ---------------------------------------------------------- | -------------------------------------- |
-| [#11](https://github.com/terijaki/sams-provider/issues/11) | Investigate live ticker centralization |
+1. **[#10](https://github.com/terijaki/sams-provider/issues/10)** — register the first consumer when their SQS queue and AWS account are ready (`register --club "…" --account …`).
 
 ## Consumer repos (not tracked here)
 
