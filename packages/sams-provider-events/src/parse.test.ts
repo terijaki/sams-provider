@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vite-plus/test";
-import { createEventEnvelope, SamsEventType } from "./schemas";
+import { SamsEventType } from "sams-provider-events";
+import { contractPayloadFixtures } from "./contract-fixtures";
 import { parseSamsEventFromSqsBody } from "./parse";
 
 describe("parseSamsEventFromSqsBody", () => {
   it("parses an EventBridge SQS wrapper", () => {
-    const envelope = createEventEnvelope({
+    const envelope = {
+      schemaVersion: "1.0.0" as const,
+      eventId: "event-1",
+      occurredAt: "2026-08-27T12:00:00.000Z",
+      source: "sams-provider" as const,
       type: SamsEventType.clubUpdated,
       sourceSyncId: "sync-1",
-      payload: {
-        uuid: "club-1",
-        name: "Example Club",
-        slug: "example-club",
-        logoUrl: null,
-      },
-    });
+      snapshotVersion: "0123456789abcdef",
+      payload: contractPayloadFixtures[SamsEventType.clubUpdated],
+    };
 
     const sqsBody = JSON.stringify({
       version: "0",
@@ -27,16 +28,16 @@ describe("parseSamsEventFromSqsBody", () => {
   });
 
   it("parses a bare envelope body", () => {
-    const envelope = createEventEnvelope({
+    const envelope = {
+      schemaVersion: "1.0.0" as const,
+      eventId: "event-1",
+      occurredAt: "2026-08-27T12:00:00.000Z",
+      source: "sams-provider" as const,
       type: SamsEventType.clubUpdated,
       sourceSyncId: "sync-1",
-      payload: {
-        uuid: "club-1",
-        name: "Example Club",
-        slug: "example-club",
-        logoUrl: null,
-      },
-    });
+      snapshotVersion: "0123456789abcdef",
+      payload: contractPayloadFixtures[SamsEventType.clubUpdated],
+    };
 
     expect(parseSamsEventFromSqsBody(JSON.stringify(envelope))).toEqual(envelope);
   });

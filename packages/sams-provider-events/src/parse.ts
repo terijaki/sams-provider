@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { parseValidatedSamsEvent } from "./schemas";
+import { parseValidatedSamsEvent } from "./validate-event";
 import type { SamsEvent } from "./types";
 
 const eventBridgeSqsMessageSchema = z.object({

@@ -19,8 +19,7 @@
       "@utils/*": ["./utils/*"],
       "@src/*": ["./src/*"],
       "@project.config": ["./project.config.ts"],
-      "sams-provider-events": ["./packages/sams-provider-events/src/index.ts"],
-      "sams-provider-events/provider": ["./packages/sams-provider-events/src/provider.ts"]
+      "sams-provider-events": ["./packages/sams-provider-events/src/index.ts"]
     },
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]

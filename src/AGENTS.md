@@ -2,7 +2,7 @@ Domain logic: event contracts, projections, adaptive match refresh, sync jobs.
 
 Event payloads must stay versioned and bounded. The consumer contract lives in [`packages/sams-provider-events/`](../packages/sams-provider-events/).
 
-Provider code imports the contract through [`src/events/schemas.ts`](events/schemas.ts), which re-exports the npm package plus publishing helpers from `sams-provider-events/provider`. That keeps a single import path (`@src/events/schemas` / `../events/schemas`) for sync and lambda code instead of splitting imports across two package entry points.
+Provider code imports the npm contract through [`src/events/schemas.ts`](events/schemas.ts). Event publishing helpers (`createEventEnvelope`, `snapshotVersion`) live in [`src/events/envelope.ts`](events/envelope.ts) and are not part of the published package.
 
 ## Consumer documentation
 
