@@ -35,6 +35,11 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.mts",
+      "import": "./dist/provider.mjs",
+      "require": "./dist/provider.cjs"
     }
   },
   "publishConfig": {

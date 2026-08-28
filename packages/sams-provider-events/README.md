@@ -1,6 +1,6 @@
-# sams-provider-events
+# TypeScript types for SAMS volleyball events
 
-TypeScript types, Zod schemas, and optional SQS parsers for [SAMS provider](https://github.com/terijaki/sams-provider) events delivered to consumer queues.
+Install as **`sams-provider-events`** — types, constants, and optional Zod schemas for [SAMS provider](https://github.com/terijaki/sams-provider) data delivered to your club app's SQS queue.
 
 ## Install
 
@@ -14,13 +14,12 @@ Requires Node.js **25+** (or a recent Bun release).
 
 ## What is in the package
 
-| Export                                                          | Needs Zod at runtime? | Purpose                                      |
-| --------------------------------------------------------------- | --------------------- | -------------------------------------------- |
-| **Types** (`Club`, `Match`, `SamsEvent`, …)                     | No                    | Editor hovers and compile-time safety        |
-| **Constants** (`SamsEventType`, `EVENT_SOURCE`)                 | No                    | Documented event type strings                |
-| **Zod schemas** (`clubProjectionSchema`, …)                     | Yes                   | Optional runtime validation                  |
-| **Parsers** (`parseSamsEventFromSqsBody`)                       | Yes                   | Optional SQS/EventBridge helpers             |
-| **Provider helpers** (`createEventEnvelope`, `snapshotVersion`) | Yes                   | Used by the provider; optional for consumers |
+| Export                                          | Needs Zod at runtime? | Purpose                               |
+| ----------------------------------------------- | --------------------- | ------------------------------------- |
+| **Types** (`Club`, `Match`, `SamsEvent`, …)     | No                    | Editor hovers and compile-time safety |
+| **Constants** (`SamsEventType`, `EVENT_SOURCE`) | No                    | Documented event type strings         |
+| **Zod schemas** (`clubProjectionSchema`, …)     | Yes                   | Optional runtime validation           |
+| **Parsers** (`parseSamsEventFromSqsBody`)       | Yes                   | Optional SQS/EventBridge helpers      |
 
 Types are **hand-written** and kept in sync with Zod schemas by contract tests. Import only types/constants if you do not want Zod in your runtime bundle — your bundler can tree-shake unused schema/parser code when you import type-only symbols.
 
@@ -60,7 +59,7 @@ Human-readable documentation: [docs/consumers/events.md](https://github.com/teri
 
 ## Idempotency
 
-Every envelope includes `snapshotVersion`, a hash of the payload. Skip writes when the version is unchanged for the same logical key.
+Every envelope includes `snapshotVersion`, a hash of the payload. Compare that field on incoming events — you do not need to recompute it. Skip writes when the value is unchanged for the same logical key.
 
 ## Publishing
 
