@@ -44,6 +44,19 @@ jobs:
       - name: CDK synth app stacks
         run: vp exec cdk synth
 
+      # PRs synth the feature-branch app (no Monitoring). Always synth prod too
+      # so MonitoringStack-Prod construct IDs are validated before merge.
+      - name: CDK synth prod app stacks
+        if: env.CDK_ENVIRONMENT != 'prod'
+        env:
+          CDK_ENVIRONMENT: prod
+        run: vp exec cdk synth
+
+      - name: CDK synth shared stacks
+        env:
+          CDK_STACK_GROUP: shared
+        run: vp exec cdk synth
+
   deploy:
     name: Deploy CDK to AWS
     needs: verify
@@ -96,6 +109,18 @@ jobs:
 
       - name: CDK Deploy
         run: vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json
+
+      - name: CDK Diff shared stacks
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CDK_STACK_GROUP: shared
+        run: vp exec cdk diff --all
+
+      - name: CDK Deploy shared stacks
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CDK_STACK_GROUP: shared
+        run: vp exec cdk deploy --require-approval never --all
 
       - name: Add deployment summary
         run: |
