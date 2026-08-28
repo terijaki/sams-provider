@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-This repo uses **GitHub Issues** exclusively. Publish the spec with `gh issue create` — see [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md).
+This repo uses **GitHub Issues** exclusively. Publish the spec with `gh issue create` — see [`AGENTS.md`](../../AGENTS.md#issue-tracker).
 
 ## Process
 
