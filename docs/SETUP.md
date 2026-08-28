@@ -124,4 +124,4 @@ No long-lived AWS keys in GitHub. App secrets live in SSM and are loaded in depl
 
 ## Issue tracking
 
-Provider work is tracked in [GitHub Issues](https://github.com/terijaki/sams-provider/issues). See [`AGENTS.md`](../AGENTS.md#issue-tracker) for `gh` conventions.
+Work is tracked in GitHub Issues. See [`AGENTS.md`](../AGENTS.md#issue-tracker) for `gh` conventions.

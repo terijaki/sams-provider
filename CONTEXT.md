@@ -46,7 +46,7 @@ A scheduled or completed game between two teams.
 _Avoid_: ticker
 
 **Ticker**:
-Live play-by-play for a match. It stays in the consumer in v1; the provider does not publish it ([#11](https://github.com/terijaki/sams-provider/issues/11)).
+Live play-by-play for a match. It stays in the consumer in v1; the provider does not publish it.
 _Avoid_: match event, ticker event, provider ticker
 
 ### This provider
@@ -72,7 +72,7 @@ Keep the stored club logo when a paginated SAMS list omits it. Logos are fetched
 _Avoid_: replacing logos from list responses, slug-based logo keys
 
 **Outbound projection**:
-A provider-shaped data product for consumers (club, club-season-teams, match-block, league ranking). Not a raw SAMS entity. League ranking rows include sportsclub UUID and resolved `logoUrl` ([#13](https://github.com/terijaki/sams-provider/issues/13)).
+A provider-shaped data product for consumers (club, club-season-teams, match-block, league ranking). Not a raw SAMS entity. League ranking rows include sportsclub UUID and resolved `logoUrl`.
 _Avoid_: DynamoDB item, SAMS payload
 
 **Projection event**:
@@ -93,4 +93,4 @@ _Avoid_: 5-minute cache, cron poll
 
 ## Issue tracking
 
-Work is tracked in [GitHub Issues](https://github.com/terijaki/sams-provider/issues). PRD v1 provider scope is delivered ([#1](https://github.com/terijaki/sams-provider/issues/1)). Remaining open issues: [#10](https://github.com/terijaki/sams-provider/issues/10) (first consumer), [#11](https://github.com/terijaki/sams-provider/issues/11) (live ticker, out of v1).
+Work is tracked in GitHub Issues. Use `gh issue list --state open` for current work.

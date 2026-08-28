@@ -46,8 +46,6 @@ Issues are tracked in **GitHub Issues** — use the `gh` CLI (`gh issue create`,
 
 For `/to-tickets`: link sub-issues with `gh api repos/<owner>/<repo>/issues/<parent>/sub_issues -X POST --input -` (pass `sub_issue_id` as the child's database `.id`, not `#number`). Wire blockers with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -f issue_id=<blocker-db-id>`.
 
-Open provider work: [#10](https://github.com/terijaki/sams-provider/issues/10) (first consumer registration), [#11](https://github.com/terijaki/sams-provider/issues/11) (live ticker, out of v1).
-
 ### Domain docs
 
 This repository is configured as single-context: root `CONTEXT.md` and `docs/adr` are the domain sources. See [`docs/agents/domain.md`](docs/agents/domain.md).
