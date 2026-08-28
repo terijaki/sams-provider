@@ -6,6 +6,7 @@ import {
   eventEnvelopeSchema,
   leagueRankingUpdatedPayloadSchema,
   matchBlockUpdatedPayloadSchema,
+  clubMatchSchedulePayloadSchema,
 } from "./schemas";
 
 describe("event contracts", () => {
@@ -166,5 +167,40 @@ describe("event contracts", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("creates a versioned club-match-schedule envelope", () => {
+    const payload = clubMatchSchedulePayloadSchema.parse({
+      club: {
+        uuid: "club-1",
+        name: "Example Club",
+        slug: "example-club",
+        logoUrl: "https://cdn.example/sams-logos/club-1.png",
+      },
+      season: { uuid: "season-1", name: "2026/27", current: true },
+      matches: [
+        {
+          uuid: "match-1",
+          date: "2026-09-10",
+          time: "18:00",
+          team1: { uuid: "team-1", name: "Example Club 1", sportsclubUuid: "club-1" },
+          team2: { uuid: "team-2", name: "Opponent", sportsclubUuid: "club-2" },
+          hasResult: false,
+        },
+      ],
+      projectedAt: "2026-09-01T12:00:00.000Z",
+      cachedAt: "2026-09-01T12:00:00.000Z",
+      isStale: false,
+    });
+
+    const event = createEventEnvelope({
+      type: EventType.clubMatchScheduleUpdated,
+      sourceSyncId: "sync-1",
+      payload,
+    });
+
+    expect(eventEnvelopeSchema.parse(event).type).toBe("sams.club-match-schedule.updated");
+    expect(event.payload.matches).toHaveLength(1);
+    expect(event.snapshotVersion).toHaveLength(16);
   });
 });

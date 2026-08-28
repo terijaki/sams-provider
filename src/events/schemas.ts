@@ -9,6 +9,7 @@ export const EventType = {
   clubUpdated: "sams.club.updated",
   teamsSyncCompleted: "sams.teams.sync.completed",
   clubSeasonTeamsUpdated: "sams.club-season-teams.updated",
+  clubMatchScheduleUpdated: "sams.club-match-schedule.updated",
   matchBlockUpdated: "sams.match-block.updated",
   matchesUpdated: "sams.matches.updated",
   leagueRankingUpdated: "sams.league-ranking.updated",
@@ -23,6 +24,7 @@ const EVENT_TYPE_VALUES = [
   EventType.clubUpdated,
   EventType.teamsSyncCompleted,
   EventType.clubSeasonTeamsUpdated,
+  EventType.clubMatchScheduleUpdated,
   EventType.matchBlockUpdated,
   EventType.matchesUpdated,
   EventType.leagueRankingUpdated,
@@ -126,6 +128,19 @@ export const matchProjectionSchema = z.object({
   hasResult: z.boolean(),
 });
 
+export const clubMatchSchedulePayloadSchema = z.object({
+  club: clubProjectionSchema,
+  season: z.object({
+    uuid: z.string().min(1),
+    name: z.string().min(1),
+    current: z.boolean(),
+  }),
+  matches: z.array(matchProjectionSchema),
+  projectedAt: z.iso.datetime(),
+  cachedAt: z.iso.datetime(),
+  isStale: z.boolean(),
+});
+
 export const matchBlockUpdatedPayloadSchema = z.object({
   matchBlockId: z.string().min(1),
   leagueUuid: z.string().min(1),
@@ -184,6 +199,7 @@ const PAYLOAD_SCHEMAS = {
   [EventType.clubUpdated]: clubProjectionSchema,
   [EventType.teamsSyncCompleted]: teamsSyncCompletedPayloadSchema,
   [EventType.clubSeasonTeamsUpdated]: clubSeasonTeamsPayloadSchema,
+  [EventType.clubMatchScheduleUpdated]: clubMatchSchedulePayloadSchema,
   [EventType.matchBlockUpdated]: matchBlockUpdatedPayloadSchema,
   [EventType.matchesUpdated]: matchBlockUpdatedPayloadSchema,
   [EventType.leagueRankingUpdated]: leagueRankingUpdatedPayloadSchema,
