@@ -17,7 +17,7 @@ A deep module (as opposed to a shallow module) is one which encapsulates a lot o
 
 Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
 
-5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Publish it as a GitHub issue with `gh issue create` — see [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md).
+5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Publish it as a GitHub issue with `gh issue create` — see [`AGENTS.md`](../../AGENTS.md#issue-tracker).
 
 <prd-template>
 
