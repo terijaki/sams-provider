@@ -75,7 +75,9 @@ export const sampleClubSeasonRosters: ClubSeasonRosters = {
 
 export const sampleLeagueRankingUpdate: LeagueRankingUpdate = {
   leagueUuid: "league-1",
+  leagueName: "Landesliga",
   seasonUuid: "season-1",
+  seasonName: "2026/27",
   cachedAt: "2026-08-27T12:00:00.000Z",
   refreshState: "active",
   nextRefreshAfter: null,

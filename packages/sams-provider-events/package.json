@@ -1,6 +1,6 @@
 {
   "name": "sams-provider-events",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Types, Zod schemas, and constants for SAMS provider events delivered to consumer SQS queues.",
   "keywords": [
     "SAMS",

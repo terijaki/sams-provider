@@ -130,7 +130,7 @@ export async function refreshMatchesAndRankings(args: {
         query: { page: 0, size: 100 },
       });
       const seasonUuid = rawMatches[0]?.seasonUuid ?? storedMatches[0]?.seasonUuid ?? "unknown";
-      const entries = await buildLeagueRankingProjection({
+      const ranking = await buildLeagueRankingProjection({
         entries: rankingData?.content ?? [],
         repos: args.repos,
         sams: args.sams,
@@ -145,13 +145,15 @@ export async function refreshMatchesAndRankings(args: {
           sourceSyncId: args.sourceSyncId,
           payload: {
             leagueUuid: block.leagueUuid,
+            ...(ranking.leagueName ? { leagueName: ranking.leagueName } : {}),
             seasonUuid,
+            ...(ranking.seasonName ? { seasonName: ranking.seasonName } : {}),
             cachedAt,
             refreshState: decision.state,
             nextRefreshAfter: decision.nextRefreshAfter,
             isStale: false,
             sourceMatchBlockId: block.id,
-            entries,
+            entries: ranking.entries,
           },
         }),
       );

@@ -15,6 +15,38 @@ describe("event payload schemas", () => {
     ).toThrow();
   });
 
+  it("accepts league-ranking payloads without display names", () => {
+    const payload = leagueRankingUpdatedPayloadSchema.parse({
+      leagueUuid: "league-1",
+      seasonUuid: "season-1",
+      cachedAt: "2026-08-27T12:00:00.000Z",
+      refreshState: "active",
+      nextRefreshAfter: null,
+      isStale: false,
+      entries: [{ rank: 1, teamUuid: "team-1", teamName: "Example Club 1" }],
+    });
+
+    expect(payload.leagueName).toBeUndefined();
+    expect(payload.seasonName).toBeUndefined();
+  });
+
+  it("accepts league-ranking payloads with display names", () => {
+    const payload = leagueRankingUpdatedPayloadSchema.parse({
+      leagueUuid: "league-1",
+      leagueName: "Landesliga",
+      seasonUuid: "season-1",
+      seasonName: "2026/27",
+      cachedAt: "2026-08-27T12:00:00.000Z",
+      refreshState: "active",
+      nextRefreshAfter: null,
+      isStale: false,
+      entries: [{ rank: 1, teamUuid: "team-1", teamName: "Example Club 1" }],
+    });
+
+    expect(payload.leagueName).toBe("Landesliga");
+    expect(payload.seasonName).toBe("2026/27");
+  });
+
   it("rejects raw SAMS ranking objects in league-ranking payloads", () => {
     expect(() =>
       leagueRankingUpdatedPayloadSchema.parse({
