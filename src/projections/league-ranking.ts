@@ -58,6 +58,12 @@ export type LeagueRankingSams = {
   }>;
 };
 
+export type LeagueRankingProjection = {
+  leagueName?: string;
+  seasonName?: string;
+  entries: LeagueRankingEntry[];
+};
+
 export async function buildLeagueRankingProjection(args: {
   entries: SamsLeagueRankingEntry[];
   repos: LeagueRankingRepos;
@@ -66,7 +72,7 @@ export async function buildLeagueRankingProjection(args: {
   leagueUuid: string;
   seasonUuid: string;
   sleep?: (ms: number) => Promise<void>;
-}): Promise<LeagueRankingEntry[]> {
+}): Promise<LeagueRankingProjection> {
   const sleep = args.sleep ?? defaultSleep;
   const [teams, clubs, leagues, seasons] = await Promise.all([
     args.repos.teams.listAll(),
@@ -78,6 +84,8 @@ export async function buildLeagueRankingProjection(args: {
   const clubByUuid = new Map(clubs.map((club) => [club.sportsclubUuid, club]));
   const league = leagues.find((item) => item.uuid === args.leagueUuid);
   const season = seasons.find((item) => item.uuid === args.seasonUuid);
+  const leagueName = league?.name;
+  const seasonName = season?.name;
 
   const normalized: LeagueRankingEntry[] = [];
   for (const entry of args.entries) {
@@ -96,9 +104,9 @@ export async function buildLeagueRankingProjection(args: {
       repos: args.repos,
       sams: args.sams,
       leagueUuid: args.leagueUuid,
-      leagueName: league?.name ?? args.leagueUuid,
+      leagueName: leagueName ?? args.leagueUuid,
       seasonUuid: args.seasonUuid,
-      seasonName: season?.name ?? args.seasonUuid,
+      seasonName: seasonName ?? args.seasonUuid,
       sleep,
     });
 
@@ -121,7 +129,11 @@ export async function buildLeagueRankingProjection(args: {
       ...rankingStats(entry),
     });
   }
-  return normalized;
+  return {
+    ...(leagueName ? { leagueName } : {}),
+    ...(seasonName ? { seasonName } : {}),
+    entries: normalized,
+  };
 }
 
 async function resolveTeam(args: {

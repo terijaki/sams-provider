@@ -231,7 +231,11 @@ export interface LeagueRankingEntry {
 /** League standings update for a season. */
 export interface LeagueRankingUpdate {
   leagueUuid: string;
+  /** League display name, for example `Bezirksliga Herren Süd`. Omitted until the provider read model has synced league metadata. */
+  leagueName?: string;
   seasonUuid: string;
+  /** Season display name, for example `2026/27`. Omitted until the provider read model has synced season metadata. */
+  seasonName?: string;
   cachedAt: string;
   refreshState: string;
   nextRefreshAfter: string | null;

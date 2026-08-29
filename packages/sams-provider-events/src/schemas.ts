@@ -205,7 +205,21 @@ export const leagueRankingProjectionSchema = z.object({
 
 export const leagueRankingUpdatedPayloadSchema = z.object({
   leagueUuid: z.string().min(1),
+  leagueName: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "League display name, for example `Bezirksliga Herren Süd`. Omitted until the provider read model has synced league metadata.",
+    ),
   seasonUuid: z.string().min(1),
+  seasonName: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Season display name, for example `2026/27`. Omitted until the provider read model has synced season metadata.",
+    ),
   cachedAt: z.iso.datetime(),
   refreshState: z.string().min(1),
   nextRefreshAfter: z.iso.datetime().nullable(),

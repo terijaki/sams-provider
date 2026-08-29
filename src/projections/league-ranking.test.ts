@@ -124,7 +124,7 @@ describe("league-ranking projection", () => {
       sleep: async () => undefined,
     });
 
-    expect(entries).toEqual([
+    expect(entries.entries).toEqual([
       {
         rank: 1,
         teamUuid: "team-1",
@@ -135,6 +135,8 @@ describe("league-ranking projection", () => {
         matchesPlayed: 4,
       },
     ]);
+    expect(entries.leagueName).toBe("Landesliga");
+    expect(entries.seasonName).toBe("2026/27");
   });
 
   it("omits sportsclubUuid when the team cannot be resolved", async () => {
@@ -150,7 +152,7 @@ describe("league-ranking projection", () => {
       sleep: async () => undefined,
     });
 
-    expect(entries).toEqual([
+    expect(entries.entries).toEqual([
       {
         rank: 2,
         teamUuid: "team-missing",
@@ -174,7 +176,7 @@ describe("league-ranking projection", () => {
       sleep: async () => undefined,
     });
 
-    expect(entries).toEqual([
+    expect(entries.entries).toEqual([
       {
         rank: 3,
         teamUuid: "team-1",
@@ -198,7 +200,7 @@ describe("league-ranking projection", () => {
       sleep: async () => undefined,
     });
 
-    expect(entries[0]?.logoUrl).toBeNull();
+    expect(entries.entries[0]?.logoUrl).toBeNull();
   });
 
   it("backfills team rows from SAMS when missing from the teams table", async () => {
@@ -231,7 +233,31 @@ describe("league-ranking projection", () => {
 
     expect(upsertedTeams).toHaveLength(1);
     expect(upsertedTeams[0]?.uuid).toBe("team-new");
-    expect(entries[0]?.sportsclubUuid).toBe("club-2");
-    expect(entries[0]?.logoUrl).toBe("https://cdn.example/sams-logos/club-2.webp");
+    expect(entries.entries[0]?.sportsclubUuid).toBe("club-2");
+    expect(entries.entries[0]?.logoUrl).toBe("https://cdn.example/sams-logos/club-2.webp");
+  });
+
+  it("omits leagueName and seasonName when read-model metadata is missing", async () => {
+    const entries = await buildLeagueRankingProjection({
+      entries: [{ uuid: "team-1", teamName: "Example Club 1", rank: 1 }],
+      repos: {
+        teams: {
+          listAll: async () => [team({ uuid: "team-1", name: "Example Club 1" })],
+          upsert: async (input) => team({ ...input, uuid: input.uuid }),
+        },
+        clubs: { listAll: async () => [] },
+        leagues: { listAll: async () => [] },
+        seasons: { listAll: async () => [] },
+      },
+      sams: { getTeamByUuid: async () => ({ data: undefined }) },
+      publicLogoBaseUrl,
+      leagueUuid: "league-1",
+      seasonUuid: "season-1",
+      sleep: async () => undefined,
+    });
+
+    expect(entries.leagueName).toBeUndefined();
+    expect(entries.seasonName).toBeUndefined();
+    expect(entries.entries).toHaveLength(1);
   });
 });
