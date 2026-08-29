@@ -210,18 +210,18 @@ Every event shares this shape (`SamsEvent`):
 
 **Payload:**
 
-| Field                | Type                 | Description                                                                                                                   |
-| -------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `leagueUuid`         | string               | League UUID                                                                                                                   |
-| `leagueName`         | string?              | League display name (for example `Bezirksliga Herren Süd`). Omitted until the provider read model has synced league metadata. |
-| `seasonUuid`         | string               | Season UUID                                                                                                                   |
-| `seasonName`         | string?              | Season display name (for example `2026/27`). Omitted until the provider read model has synced season metadata.                |
-| `cachedAt`           | ISO datetime         | When ranking data was fetched                                                                                                 |
-| `refreshState`       | string               | Same semantics as match-block                                                                                                 |
-| `nextRefreshAfter`   | ISO datetime \| null | Planned next ranking refresh                                                                                                  |
-| `isStale`            | boolean              | Cache exceeded its refresh window                                                                                             |
-| `sourceMatchBlockId` | string?              | Block that triggered this ranking refresh                                                                                     |
-| `entries`            | LeagueRankingEntry[] | Standings rows                                                                                                                |
+| Field                | Type                 | Description                                                |
+| -------------------- | -------------------- | ---------------------------------------------------------- |
+| `leagueUuid`         | string               | League UUID                                                |
+| `leagueName`         | string?              | League display name (for example `Bezirksliga Herren Süd`) |
+| `seasonUuid`         | string               | Season UUID                                                |
+| `seasonName`         | string?              | Season display name (for example `2026/27`)                |
+| `cachedAt`           | ISO datetime         | When ranking data was fetched                              |
+| `refreshState`       | string               | Same semantics as match-block                              |
+| `nextRefreshAfter`   | ISO datetime \| null | Planned next ranking refresh                               |
+| `isStale`            | boolean              | Cache exceeded its refresh window                          |
+| `sourceMatchBlockId` | string?              | Block that triggered this ranking refresh                  |
+| `entries`            | LeagueRankingEntry[] | Standings rows                                             |
 
 **LeagueRankingEntry** includes `rank`, `teamUuid`, `teamName`, optional `sportsclubUuid`, optional `logoUrl`, and optional stats (`points`, `wins`, `losses`, set/ball columns, etc.).
 
