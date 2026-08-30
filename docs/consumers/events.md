@@ -20,7 +20,7 @@ import { parseSamsEventFromSqsBody } from "sams-provider-events";
 const event = parseSamsEventFromSqsBody(sqsRecord.body);
 ```
 
-Every registered queue currently receives **all** event types. Subscription filtering is planned but not enforced yet.
+Every registered queue receives projection events for **your club only** (matched by club UUID on the event bus). Operational sync-completed signals are not delivered to club queues.
 
 Live match ticker data is **not** included. Build ticker handling in your own app if you need it.
 

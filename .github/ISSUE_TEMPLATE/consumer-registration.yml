@@ -41,7 +41,7 @@ body:
       options:
         - label: The queue in that ARN exists in `eu-central-1`.
           required: true
-        - label: The queue policy matches the README (the provider event bus can send messages).
+        - label: The queue policy matches the README (the provider delivery role can send messages).
           required: true
   - type: textarea
     id: notes

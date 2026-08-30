@@ -46,17 +46,11 @@ After that, events arrive on your queue. You still need a processor in **your** 
 Create these in **your** AWS account, in `eu-central-1` (Frankfurt). This repository does not create consumer queues. The queue can have any name; paste its ARN on the issue.
 
 - An SQS queue
-- A queue resource policy that lets the provider event bus send messages
+- A queue resource policy that lets the provider **delivery role** send messages
 
 A dead-letter queue is recommended so failed processor runs do not drop messages. It is not required for registration.
 
-Provider event bus:
-
-```text
-arn:aws:events:eu-central-1:550271577754:event-bus/sams-provider
-```
-
-Deploy the queue **before** you open the issue. Registration fails until the queue exists and the policy allows that bus.
+Deploy the queue **before** you open the issue. Registration fails until the queue exists and the policy grants the delivery role.
 
 ### Queue policy (CDK)
 
@@ -102,7 +96,9 @@ The same policy in JSON (replace the queue ARN with yours):
 }
 ```
 
-Cross-account delivery uses the provider **execution role** above (`sp-event-delivery-prod` in prod). EventBridge assumes that role when invoking your queue. Granting only the event bus ARN or `events.amazonaws.com` as principal is not sufficient.
+Cross-account delivery uses the provider **execution role** above (`sp-event-delivery-prod` in prod). EventBridge assumes that role when invoking your queue. Granting only `events.amazonaws.com` or the event bus ARN as principal is not sufficient.
+
+Default SQS encryption (SSE-SQS) works as-is. If you use a **customer-managed KMS key** on the queue, also grant that key to the delivery role (`kms:Decrypt`, `kms:GenerateDataKey`). Skip a CMK unless you need one.
 
 Terraform, CloudFormation, or the console are fine as long as the region and policy match.
 

@@ -14,7 +14,7 @@ import type { SamsClubInput } from "@lib/db/schemas";
 import { SAMS_ENTITY_TTL_DAYS } from "../config/constants";
 import { unixTtlFromNow } from "@lib/db/repository-utils";
 import { slugify } from "@utils/slugify";
-import { providerEventBusArn, type ProviderEnvironment } from "@utils/provider-event-bus";
+import { type ProviderEnvironment } from "@utils/provider-event-bus";
 import {
   clubSubscriptionSchema,
   consumerConfigSchema,
@@ -22,7 +22,6 @@ import {
   type ClubSubscription,
   type ConsumerConfig,
 } from "../config/schema";
-import { SamsEventType } from "../events/schemas";
 
 export const REGISTER_USAGE =
   'Usage: sams-provider register --club "Club Name" --account 123456789012';
@@ -87,6 +86,47 @@ export function parseRegisterArgs(argv: string[]): RegisterArgs {
   };
 }
 
+export function queueAccountId(queueArn: string): string | undefined {
+  const match = /^arn:aws:sqs:[^:]+:(\d{12}):/.exec(queueArn);
+  return match?.[1];
+}
+
+export function assertConsumerQueueArn(queueArn: string, accountId: string): void {
+  const match = /^arn:aws:sqs:([^:]+):(\d{12}):.+$/.exec(queueArn);
+  if (!match) {
+    throw new Error(`Invalid SQS queue ARN: ${queueArn}`);
+  }
+  const region = match[1];
+  const account = match[2];
+  if (region !== AWS.region) {
+    throw new Error(`Queue ARN region must be ${AWS.region}, got ${region}`);
+  }
+  if (account !== accountId) {
+    throw new Error(`Queue ARN account ${account} does not match --account ${accountId}`);
+  }
+}
+
+export function isCrossAccountQueue(queueArn: string, environment: ProviderEnvironment): boolean {
+  const accountId = queueAccountId(queueArn);
+  if (!accountId) {
+    throw new Error(`Invalid SQS queue ARN: ${queueArn}`);
+  }
+  return accountId !== AWS.accounts[environment];
+}
+
+export function clubUuidsForConsumer(clubs: ClubSubscription[], consumerId: string): string[] {
+  return clubs.filter((club) => club.consumerIds.includes(consumerId)).map((club) => club.uuid);
+}
+
+export function buildConsumerEventPattern(clubUuids: string[]): Record<string, unknown> {
+  return {
+    source: ["sams-provider"],
+    detail: {
+      clubUuids,
+    },
+  };
+}
+
 export async function registerConsumer(args: RegisterArgs): Promise<{
   club: ClubSubscription;
   consumer: ConsumerConfig;
@@ -105,6 +145,7 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
     args.consumerId ?? `${slugify(args.club)}-${environment}`.replace(/[^a-z0-9-]/g, "-");
   const queueArn =
     args.queueArn ?? `arn:aws:sqs:${AWS.region}:${args.account}:${CONSUMER_QUEUE_NAME}`;
+  assertConsumerQueueArn(queueArn, args.account);
 
   const consumer = consumerConfigSchema.parse({
     id: consumerId,
@@ -145,6 +186,7 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
     environment,
     eventBusName: args.eventBusName ?? "sams-provider",
     consumer,
+    clubs,
     deliveryRoleArn: args.deliveryRoleArn,
     ssm,
   });
@@ -259,11 +301,16 @@ async function upsertEventBridgeTargets(args: {
   environment: ProviderEnvironment;
   eventBusName: string;
   consumer: ConsumerConfig;
+  clubs: ClubSubscription[];
   deliveryRoleArn?: string;
   ssm: SSMClient;
 }): Promise<void> {
   const events = new EventBridgeClient({ region: AWS.region });
   const ruleName = `sams-provider-${args.consumer.id}`;
+  const clubUuids = clubUuidsForConsumer(args.clubs, args.consumer.id);
+  if (clubUuids.length === 0) {
+    throw new Error(`No club subscriptions found for consumer ${args.consumer.id}`);
+  }
   const target: Target = { Id: args.consumer.id, Arn: args.consumer.queueArn };
   if (isCrossAccountQueue(args.consumer.queueArn, args.environment)) {
     const roleArn = args.deliveryRoleArn ?? (await readDeliveryRoleArn(args.ssm, args.environment));
@@ -280,10 +327,7 @@ async function upsertEventBridgeTargets(args: {
         Name: ruleName,
         EventBusName: args.eventBusName,
         State: "ENABLED",
-        EventPattern: JSON.stringify({
-          source: ["sams-provider"],
-          "detail-type": Object.values(SamsEventType),
-        }),
+        EventPattern: JSON.stringify(buildConsumerEventPattern(clubUuids)),
       }),
     );
     await events.send(
@@ -296,22 +340,9 @@ async function upsertEventBridgeTargets(args: {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "unknown error";
     throw new Error(
-      `Failed to wire EventBridge on ${args.eventBusName} to ${args.consumer.queueArn}. Confirm the queue exists in account ${args.consumer.accountId} (${AWS.region}) and allows the provider delivery role or account ${AWS.accounts[args.environment]} to sqs:SendMessage from ${providerEventBusArn(args.environment)}. ${detail}`,
+      `Failed to wire EventBridge on ${args.eventBusName} to ${args.consumer.queueArn}. Confirm the queue exists in account ${args.consumer.accountId} (${AWS.region}) and allows the provider delivery role to sqs:SendMessage. ${detail}`,
     );
   }
-}
-
-export function queueAccountId(queueArn: string): string | undefined {
-  const match = /^arn:aws:sqs:[^:]+:(\d{12}):/.exec(queueArn);
-  return match?.[1];
-}
-
-export function isCrossAccountQueue(queueArn: string, environment: ProviderEnvironment): boolean {
-  const accountId = queueAccountId(queueArn);
-  if (!accountId) {
-    throw new Error(`Invalid SQS queue ARN: ${queueArn}`);
-  }
-  return accountId !== AWS.accounts[environment];
 }
 
 async function readDeliveryRoleArn(
