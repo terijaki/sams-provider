@@ -75,18 +75,10 @@ const queue = new sqs.Queue(this, "SamsProviderEvents", {
 
 queue.addToResourcePolicy(
   new iam.PolicyStatement({
-    sid: "AllowSamsProviderEventBus",
-    principals: [new iam.ServicePrincipal("events.amazonaws.com")],
+    sid: "AllowSamsProviderDeliveryRole",
+    principals: [new iam.ArnPrincipal("arn:aws:iam::550271577754:role/sp-event-delivery-prod")],
     actions: ["sqs:SendMessage"],
     resources: [queue.queueArn],
-    conditions: {
-      ArnEquals: {
-        "aws:SourceArn": "arn:aws:events:eu-central-1:550271577754:event-bus/sams-provider",
-      },
-      StringEquals: {
-        "aws:SourceAccount": "550271577754",
-      },
-    },
   }),
 );
 ```
@@ -98,23 +90,19 @@ The same policy in JSON (replace the queue ARN with yours):
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "AllowSamsProviderEventBus",
+      "Sid": "AllowSamsProviderDeliveryRole",
       "Effect": "Allow",
-      "Principal": { "Service": "events.amazonaws.com" },
+      "Principal": {
+        "AWS": "arn:aws:iam::550271577754:role/sp-event-delivery-prod"
+      },
       "Action": "sqs:SendMessage",
-      "Resource": "arn:aws:sqs:eu-central-1:123456789012:your-queue",
-      "Condition": {
-        "ArnEquals": {
-          "aws:SourceArn": "arn:aws:events:eu-central-1:550271577754:event-bus/sams-provider"
-        },
-        "StringEquals": {
-          "aws:SourceAccount": "550271577754"
-        }
-      }
+      "Resource": "arn:aws:sqs:eu-central-1:123456789012:your-queue"
     }
   ]
 }
 ```
+
+Cross-account delivery uses the provider **execution role** above (`sp-event-delivery-prod` in prod). EventBridge assumes that role when invoking your queue. Granting only the event bus ARN or `events.amazonaws.com` as principal is not sufficient.
 
 Terraform, CloudFormation, or the console are fine as long as the region and policy match.
 

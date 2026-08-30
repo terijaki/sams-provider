@@ -1,7 +1,12 @@
 import { PutParameterCommand, GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { EventBridgeClient, PutRuleCommand, PutTargetsCommand } from "@aws-sdk/client-eventbridge";
+import {
+  EventBridgeClient,
+  PutRuleCommand,
+  PutTargetsCommand,
+  type Target,
+} from "@aws-sdk/client-eventbridge";
 import { AWS, CONSUMER_QUEUE_NAME } from "@project.config";
 import { computeSamsDataTableName } from "@lib/db/env";
 import { SamsClubsRepository } from "@lib/db/repositories/sams-clubs-repository";
@@ -34,6 +39,7 @@ export type RegisterArgs = {
   consumerId?: string;
   environment?: ProviderEnvironment;
   queueArn?: string;
+  deliveryRoleArn?: string;
   eventBusName?: string;
   tableName?: string;
 };
@@ -75,6 +81,7 @@ export function parseRegisterArgs(argv: string[]): RegisterArgs {
     account,
     consumerId: readFlag(argv, "consumer-id"),
     queueArn: readFlag(argv, "queue-arn"),
+    deliveryRoleArn: readFlag(argv, "delivery-role-arn"),
     environment: parseRegisterEnvironment(readFlag(argv, "environment")),
     tableName: readFlag(argv, "table-name"),
   };
@@ -138,6 +145,8 @@ export async function registerConsumer(args: RegisterArgs): Promise<{
     environment,
     eventBusName: args.eventBusName ?? "sams-provider",
     consumer,
+    deliveryRoleArn: args.deliveryRoleArn,
+    ssm,
   });
 
   const registered = clubs.find((item) => item.uuid === resolvedClub.uuid);
@@ -250,9 +259,21 @@ async function upsertEventBridgeTargets(args: {
   environment: ProviderEnvironment;
   eventBusName: string;
   consumer: ConsumerConfig;
+  deliveryRoleArn?: string;
+  ssm: SSMClient;
 }): Promise<void> {
   const events = new EventBridgeClient({ region: AWS.region });
   const ruleName = `sams-provider-${args.consumer.id}`;
+  const target: Target = { Id: args.consumer.id, Arn: args.consumer.queueArn };
+  if (isCrossAccountQueue(args.consumer.queueArn, args.environment)) {
+    const roleArn = args.deliveryRoleArn ?? (await readDeliveryRoleArn(args.ssm, args.environment));
+    if (!roleArn) {
+      throw new Error(
+        `Cross-account SQS target ${args.consumer.queueArn} requires an EventBridge delivery role. Deploy EventStack (writes ${ssmParameterPath(args.environment, "sync/event-delivery-role-arn")}) or pass --delivery-role-arn.`,
+      );
+    }
+    target.RoleArn = roleArn;
+  }
   try {
     await events.send(
       new PutRuleCommand({
@@ -269,13 +290,43 @@ async function upsertEventBridgeTargets(args: {
       new PutTargetsCommand({
         Rule: ruleName,
         EventBusName: args.eventBusName,
-        Targets: [{ Id: args.consumer.id, Arn: args.consumer.queueArn }],
+        Targets: [target],
       }),
     );
   } catch (error) {
     const detail = error instanceof Error ? error.message : "unknown error";
     throw new Error(
-      `Failed to wire EventBridge on ${args.eventBusName} to ${args.consumer.queueArn}. Confirm the queue exists in account ${args.consumer.accountId} (${AWS.region}) and allows events.amazonaws.com to sqs:SendMessage from ${providerEventBusArn(args.environment)}. ${detail}`,
+      `Failed to wire EventBridge on ${args.eventBusName} to ${args.consumer.queueArn}. Confirm the queue exists in account ${args.consumer.accountId} (${AWS.region}) and allows the provider delivery role or account ${AWS.accounts[args.environment]} to sqs:SendMessage from ${providerEventBusArn(args.environment)}. ${detail}`,
     );
+  }
+}
+
+export function queueAccountId(queueArn: string): string | undefined {
+  const match = /^arn:aws:sqs:[^:]+:(\d{12}):/.exec(queueArn);
+  return match?.[1];
+}
+
+export function isCrossAccountQueue(queueArn: string, environment: ProviderEnvironment): boolean {
+  const accountId = queueAccountId(queueArn);
+  if (!accountId) {
+    throw new Error(`Invalid SQS queue ARN: ${queueArn}`);
+  }
+  return accountId !== AWS.accounts[environment];
+}
+
+async function readDeliveryRoleArn(
+  ssm: SSMClient,
+  environment: ProviderEnvironment,
+): Promise<string | undefined> {
+  try {
+    const result = await ssm.send(
+      new GetParameterCommand({
+        Name: ssmParameterPath(environment, "sync/event-delivery-role-arn"),
+      }),
+    );
+    const arn = result.Parameter?.Value?.trim();
+    return arn || undefined;
+  } catch {
+    return undefined;
   }
 }

@@ -63,7 +63,11 @@ export function ssmPrefix(environment: string, branch = ""): string {
 
 export function ssmParameterPath(
   environment: string,
-  key: "sync/clubs" | "sync/consumers" | "sync/match-refresh-policy",
+  key:
+    | "sync/clubs"
+    | "sync/consumers"
+    | "sync/match-refresh-policy"
+    | "sync/event-delivery-role-arn",
   branch = "",
 ): string {
   return `${ssmPrefix(environment, branch)}/${key}`;
