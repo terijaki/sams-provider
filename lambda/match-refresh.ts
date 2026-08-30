@@ -6,6 +6,7 @@ import { SSMClient } from "@aws-sdk/client-ssm";
 import middy from "@middy/core";
 import { loadProviderRuntimeConfig } from "@src/config/load";
 import { EventBridgePublisher } from "@src/events/eventbridge-publisher";
+import { parseMatchRefreshMode } from "@src/refresh/mode";
 import { refreshMatchesAndRankings } from "@src/refresh/refresh-matches";
 import { getSamsClient } from "@utils/sams-client";
 import { createSamsRepositories } from "@lib/db/repositories/create-sams-repositories";
@@ -20,7 +21,12 @@ const repos = createSamsRepositories(docClient, env.SAMS_TABLE_NAME);
 const ssm = new SSMClient({});
 const eventBridge = new EventBridgeClient({});
 
-const lambdaHandler = async () => {
+type MatchRefreshEvent = {
+  mode?: string;
+};
+
+const lambdaHandler = async (event: MatchRefreshEvent = {}) => {
+  const mode = parseMatchRefreshMode(event);
   const sourceSyncId = randomUUID();
   const config = await loadProviderRuntimeConfig({
     environment: env.CDK_ENVIRONMENT,
@@ -39,13 +45,14 @@ const lambdaHandler = async () => {
       policy: config.matchRefreshPolicy,
       publicLogoBaseUrl: env.LOGO_PUBLIC_BASE_URL,
       sourceSyncId,
+      mode,
     });
     logger.info("Match refresh completed", result);
     return result;
   } catch (error) {
     logger.error("Match refresh failed", { error });
     await repos.syncMeta.put({
-      job: "match-refresh",
+      job: mode === "snapshot" ? "match-snapshot" : "match-refresh",
       status: "failure",
       durationMs: 0,
       errorMessage: error instanceof Error ? error.message : "Unknown error",

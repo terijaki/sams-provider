@@ -94,6 +94,10 @@ _Avoid_: match day, round, fixed poll window
 Refreshing match blocks (and related rankings) by schedule and match state, not on a fixed interval.
 _Avoid_: 5-minute cache, cron poll
 
+**Match snapshot**:
+A weekly full reload of current-season schedules and league rankings for registered clubs, independent of the live window.
+_Avoid_: emptying the matches table to force bootstrap
+
 ## Issue tracking
 
 Work is tracked in GitHub Issues. Use `gh issue list --state open` for current work.
