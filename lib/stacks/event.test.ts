@@ -41,11 +41,9 @@ describe("EventStack", () => {
     });
     const template = Template.fromStack(stack);
     const roles = template.findResources("AWS::IAM::Role");
-    const deliveryRole = Object.values(roles).find((resource) =>
-      JSON.stringify(resource.Properties?.AssumeRolePolicyDocument ?? {}).includes(
-        "events.amazonaws.com",
-      ),
-    );
+    const deliveryRoleKey = Object.keys(roles).find((key) => key.startsWith("EventDeliveryRole"));
+    expect(deliveryRoleKey).toBeDefined();
+    const deliveryRole = deliveryRoleKey ? roles[deliveryRoleKey] : undefined;
     expect(deliveryRole?.Properties?.RoleName).toBeUndefined();
   });
 
