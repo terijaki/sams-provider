@@ -1,5 +1,6 @@
 import { PutEventsCommand, EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import type { DomainEventPublisher } from "./publisher";
+import { eventBridgeDetail } from "./eventbridge-detail";
 import { EVENT_SOURCE, type SamsEvent } from "./schemas";
 
 export class EventBridgePublisher implements DomainEventPublisher {
@@ -22,7 +23,7 @@ export class EventBridgePublisher implements DomainEventPublisher {
             EventBusName: this.eventBusName,
             Source: EVENT_SOURCE,
             DetailType: event.type,
-            Detail: JSON.stringify(event),
+            Detail: eventBridgeDetail(event),
             Time: new Date(event.occurredAt),
           })),
         }),

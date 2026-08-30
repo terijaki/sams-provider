@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  assertConsumerQueueArn,
+  buildConsumerEventPattern,
+  clubUuidsForConsumer,
   DEFAULT_REGISTER_ENVIRONMENT,
+  isCrossAccountQueue,
   parseRegisterArgs,
   parseRegisterEnvironment,
+  queueAccountId,
   REGISTER_USAGE,
   resolveClub,
 } from "./register";
@@ -43,9 +48,90 @@ describe("parseRegisterArgs", () => {
       account: "123456789012",
       consumerId: undefined,
       queueArn: undefined,
+      deliveryRoleArn: undefined,
       environment: "prod",
       tableName: undefined,
     });
+  });
+});
+
+describe("assertConsumerQueueArn", () => {
+  it("accepts a queue in eu-central-1 owned by the account", () => {
+    expect(() =>
+      assertConsumerQueueArn(
+        "arn:aws:sqs:eu-central-1:123456789012:sams-provider-events",
+        "123456789012",
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects the wrong region", () => {
+    expect(() =>
+      assertConsumerQueueArn(
+        "arn:aws:sqs:us-east-1:123456789012:sams-provider-events",
+        "123456789012",
+      ),
+    ).toThrow("Queue ARN region must be eu-central-1");
+  });
+
+  it("rejects the wrong account", () => {
+    expect(() =>
+      assertConsumerQueueArn(
+        "arn:aws:sqs:eu-central-1:999999999999:sams-provider-events",
+        "123456789012",
+      ),
+    ).toThrow("does not match --account");
+  });
+});
+
+describe("queueAccountId", () => {
+  it("extracts the account id from an SQS ARN", () => {
+    expect(queueAccountId("arn:aws:sqs:eu-central-1:883425316554:sams-provider-events-prod")).toBe(
+      "883425316554",
+    );
+  });
+});
+
+describe("isCrossAccountQueue", () => {
+  it("returns true when the queue is outside the provider account", () => {
+    expect(
+      isCrossAccountQueue(
+        "arn:aws:sqs:eu-central-1:883425316554:sams-provider-events-prod",
+        "prod",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false when the queue is in the provider account", () => {
+    expect(
+      isCrossAccountQueue("arn:aws:sqs:eu-central-1:550271577754:sams-provider-events", "prod"),
+    ).toBe(false);
+  });
+});
+
+describe("buildConsumerEventPattern", () => {
+  it("matches source and club uuids in detail", () => {
+    expect(buildConsumerEventPattern(["club-1", "club-2"])).toEqual({
+      source: ["sams-provider"],
+      detail: {
+        clubUuids: ["club-1", "club-2"],
+      },
+    });
+  });
+});
+
+describe("clubUuidsForConsumer", () => {
+  it("returns uuids for every club subscribed by the consumer", () => {
+    expect(
+      clubUuidsForConsumer(
+        [
+          { uuid: "club-1", name: "One", consumerIds: ["consumer-a"] },
+          { uuid: "club-2", name: "Two", consumerIds: ["consumer-a", "consumer-b"] },
+          { uuid: "club-3", name: "Three", consumerIds: ["consumer-b"] },
+        ],
+        "consumer-a",
+      ),
+    ).toEqual(["club-1", "club-2"]);
   });
 });
 

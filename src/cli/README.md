@@ -14,7 +14,7 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 - AWS credentials for that **provider** account (prod for real consumers)
 - `SAMS_API_KEY` is **not** required for register (index-only lookup). Sync jobs still need it in the provider account.
 - Consumer already deployed an SQS queue in `eu-central-1` via **their** CDK. Use the queue ARN from the registration issue (`--queue-arn`).
-- Queue policy allowing `events.amazonaws.com` to `sqs:SendMessage`, conditioned on the bus you are writing to
+- Queue policy allowing the provider **delivery role** (`sp-event-delivery-{env}`) to `sqs:SendMessage`
 
 | Provider env | When to use                         | Event bus ARN                                                      |
 | ------------ | ----------------------------------- | ------------------------------------------------------------------ |
@@ -43,14 +43,15 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 
 ### Flags
 
-| Flag            | Required | Default                                                   | Meaning                                      |
-| --------------- | -------- | --------------------------------------------------------- | -------------------------------------------- |
-| `--club`        | yes      | —                                                         | Exact SAMS club name, or a 36-character UUID |
-| `--account`     | yes      | —                                                         | 12-digit **consumer** AWS account ID         |
-| `--environment` | no       | `prod`                                                    | Provider bus to update. `dev` is tests only. |
-| `--consumer-id` | no       | slug of the club + environment (`club-name-prod`)         | Stable id stored in SSM                      |
-| `--queue-arn`   | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events` | Queue ARN from the registration issue        |
-| `--table-name`  | no       | `sams-provider-data-{env}`                                | Provider DynamoDB table for club stub upsert |
+| Flag                  | Required | Default                                                      | Meaning                                          |
+| --------------------- | -------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| `--club`              | yes      | —                                                            | Exact SAMS club name, or a 36-character UUID     |
+| `--account`           | yes      | —                                                            | 12-digit **consumer** AWS account ID             |
+| `--environment`       | no       | `prod`                                                       | Provider bus to update. `dev` is tests only.     |
+| `--consumer-id`       | no       | slug of the club + environment (`club-name-prod`)            | Stable id stored in SSM                          |
+| `--queue-arn`         | no       | `arn:aws:sqs:eu-central-1:<account>:sams-provider-events`    | Queue ARN from the registration issue            |
+| `--delivery-role-arn` | no       | from SSM `/sams-provider/{env}/sync/event-delivery-role-arn` | EventBridge execution role for cross-account SQS |
+| `--table-name`        | no       | `sams-provider-data-{env}`                                   | Provider DynamoDB table for club stub upsert     |
 
 `--environment` selects which provider SSM prefix and event bus to update (`/sams-provider/prod` vs `/sams-provider/dev`). It is not the consumer's CDK branch.
 
@@ -60,24 +61,29 @@ varlock run -- vp run register -- --club "Club Name" --account 123456789012 --en
 2. **DynamoDB** provider data table — refreshes the club stub TTL and association fields from the index.
 3. **SSM** `/sams-provider/{env}/sync/clubs` — club UUID, display name, and the consumer ids that subscribe to it.
 4. **SSM** `/sams-provider/{env}/sync/consumers` — consumer id, account, queue ARN, and subscription kinds (`clubs`, `teams`, `matches`, `rankings`, `status`).
-5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and every current `detail-type` in the `sams-provider-events` package (`SamsEventType`).
+5. **EventBridge** rule `sams-provider-<consumer-id>` on bus `sams-provider`, targeting that SQS ARN, matching `source: sams-provider` and `detail.clubUuids` for every club that consumer subscribes to. Cross-account queues also need the delivery role from EventStack (`RoleArn` on the target).
 
 Re-running the same club + consumer is idempotent: the club gains the consumer id if missing, the consumer record is replaced, and the EventBridge rule/target is upserted.
+
+After deploying club-scoped event routing, **re-run register for each existing consumer** so their EventBridge rules pick up the new pattern. Until then, old rules may still match every event type.
 
 CDK does **not** create the clubs/consumers parameters. Registering from the CLI avoids `cdk deploy` overwriting operator-owned subscriptions.
 
 Deploy the consumer queue **before** running this CLI. EventBridge `PutTargets` to a cross-account queue fails until that policy exists; the CLI surfaces that as a queue/policy error.
 
+EventBridge does not currently use a target DLQ. A bad queue policy or customer-managed KMS mismatch on the consumer queue often shows up as "queue never receives events," not a Lambda error in the provider account.
+
 ## Failures
 
-| Symptom                         | Likely cause                                            |
-| ------------------------------- | ------------------------------------------------------- |
-| Club was not found              | Club not in provider index; run clubs sync first        |
-| Club is ambiguous               | Same slug in multiple associations; pass the UUID       |
-| Club UUID was not found         | UUID not in provider index; run clubs sync first        |
-| `--account` must be 12 digits   | Account ID is missing digits or has extra characters    |
-| SSM / EventBridge access denied | Wrong credentials (must be the provider account)        |
-| Failed to wire EventBridge      | Queue missing, wrong ARN, or missing SQS policy         |
-| Queue never receives events     | Queue missing, wrong account/ARN, or missing SQS policy |
+| Symptom                           | Likely cause                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Club was not found                | Club not in provider index; run clubs sync first                                                 |
+| Club is ambiguous                 | Same slug in multiple associations; pass the UUID                                                |
+| Club UUID was not found           | UUID not in provider index; run clubs sync first                                                 |
+| `--account` must be 12 digits     | Account ID is missing digits or has extra characters                                             |
+| Queue ARN region/account mismatch | `--queue-arn` must be in `eu-central-1` and owned by `--account`                                 |
+| SSM / EventBridge access denied   | Wrong credentials (must be the provider account)                                                 |
+| Failed to wire EventBridge        | Queue missing, wrong ARN, missing SQS policy, or missing delivery role for cross-account targets |
+| Queue never receives events       | Queue missing, wrong account/ARN, missing SQS policy, or KMS key not granted to delivery role    |
 
 Stdout is JSON with the persisted `club` and `consumer` records on success.
