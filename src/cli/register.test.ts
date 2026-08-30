@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_REGISTER_ENVIRONMENT,
+  isCrossAccountQueue,
   parseRegisterArgs,
   parseRegisterEnvironment,
+  queueAccountId,
   REGISTER_USAGE,
   resolveClub,
 } from "./register";
@@ -43,9 +45,35 @@ describe("parseRegisterArgs", () => {
       account: "123456789012",
       consumerId: undefined,
       queueArn: undefined,
+      deliveryRoleArn: undefined,
       environment: "prod",
       tableName: undefined,
     });
+  });
+});
+
+describe("queueAccountId", () => {
+  it("extracts the account id from an SQS ARN", () => {
+    expect(queueAccountId("arn:aws:sqs:eu-central-1:883425316554:sams-provider-events-prod")).toBe(
+      "883425316554",
+    );
+  });
+});
+
+describe("isCrossAccountQueue", () => {
+  it("returns true when the queue is outside the provider account", () => {
+    expect(
+      isCrossAccountQueue(
+        "arn:aws:sqs:eu-central-1:883425316554:sams-provider-events-prod",
+        "prod",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false when the queue is in the provider account", () => {
+    expect(
+      isCrossAccountQueue("arn:aws:sqs:eu-central-1:550271577754:sams-provider-events", "prod"),
+    ).toBe(false);
   });
 });
 
