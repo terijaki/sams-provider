@@ -82,7 +82,7 @@ if (isShared) {
   const syncStack = new SyncStack(app, stackName("SyncStack"), {
     ...commonStackProps,
     description: `SAMS sync and refresh jobs (${envLabel})`,
-    samsDataTableName: dataStack.samsDataTableName,
+    samsDataTable: dataStack.samsDataTable,
     logoBucketName: mediaStack.bucketName,
     publicLogoBaseUrl: mediaStack.publicBaseUrl,
     eventBusName: eventStack.eventBusName,

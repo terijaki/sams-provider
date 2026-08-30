@@ -16,7 +16,7 @@ interface SyncStackProps extends cdk.StackProps {
     environment: string;
     branch: string;
   };
-  samsDataTableName: string;
+  samsDataTable: dynamodb.ITable;
   logoBucketName: string;
   publicLogoBaseUrl: string;
   eventBusName: string;
@@ -36,17 +36,13 @@ export class SyncStack extends cdk.Stack {
     const branch = props.stackProps?.branch || "";
     const branchSuffix = computeResourceBranchSuffix(environment, branch);
     const prefix = ssmPrefix(environment, branch);
-    const samsDataTable = dynamodb.Table.fromTableName(
-      this,
-      "SamsDataTable",
-      props.samsDataTableName,
-    );
+    const samsDataTable = props.samsDataTable;
     const logoBucket = s3.Bucket.fromBucketName(this, "LogoBucket", props.logoBucketName);
     const eventBus = events.EventBus.fromEventBusName(this, "ProviderBus", props.eventBusName);
 
     const commonEnvironment = {
       CDK_ENVIRONMENT: environment,
-      SAMS_TABLE_NAME: props.samsDataTableName,
+      SAMS_TABLE_NAME: samsDataTable.tableName,
       LOGO_BUCKET_NAME: props.logoBucketName,
       LOGO_PUBLIC_BASE_URL: props.publicLogoBaseUrl,
       EVENT_BUS_NAME: props.eventBusName,
