@@ -90,7 +90,7 @@ export class SyncStack extends cdk.Stack {
       namespace: "sams",
       name: "match-refresh",
       entry: path.join(__dirname, "../../lambda/match-refresh.ts"),
-      timeout: cdk.Duration.minutes(10),
+      timeout: cdk.Duration.minutes(15),
       environment: commonEnvironment,
     }).lambdaFunction;
 
@@ -157,6 +157,20 @@ export class SyncStack extends cdk.Stack {
       description: `Adaptive match/ranking planner every 5 minutes (${environment}${branchSuffix})`,
       schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
     }).addTarget(new targets.LambdaFunction(this.matchRefresh));
+
+    new events.Rule(this, "MatchSnapshotRule", {
+      ruleName: `sams-match-snapshot-weekly-${environment}${branchSuffix}`,
+      description: `Weekly full match and ranking snapshot (${environment}${branchSuffix})`,
+      schedule: events.Schedule.cron({
+        weekDay: "WED",
+        hour: "4",
+        minute: "0",
+      }),
+    }).addTarget(
+      new targets.LambdaFunction(this.matchRefresh, {
+        event: events.RuleTargetInput.fromObject({ mode: "snapshot" }),
+      }),
+    );
 
     new cdk.CfnOutput(this, "AssociationsSyncFunctionName", {
       value: buildLambdaFunctionName("associations-sync"),

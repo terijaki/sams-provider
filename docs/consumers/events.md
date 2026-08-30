@@ -163,7 +163,7 @@ Every event shares this shape (`SamsEvent`):
 
 ### `sams.club-match-schedule.updated`
 
-**When:** Match refresh affects a registered club (including initial bootstrap).
+**When:** Match refresh affects a registered club (including initial bootstrap and the weekly snapshot).
 
 **Payload:**
 
@@ -206,7 +206,7 @@ Every event shares this shape (`SamsEvent`):
 
 ### `sams.league-ranking.updated`
 
-**When:** Emitted alongside match-block refresh when rankings for that league should update.
+**When:** Emitted alongside match-block refresh when rankings for that league should update, and on the weekly snapshot for every league a registered club plays in.
 
 **Payload:**
 
