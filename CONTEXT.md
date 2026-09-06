@@ -49,7 +49,7 @@ A scheduled or completed game between two teams.
 _Avoid_: ticker
 
 **Ticker**:
-Live play-by-play for a match. It stays in the consumer in v1; the provider does not publish it.
+Live play-by-play for a match. It is not a provider projection; consumers obtain it themselves.
 _Avoid_: match event, ticker event, provider ticker
 
 ### This provider

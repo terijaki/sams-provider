@@ -6,4 +6,5 @@ These pages are for people who operate this repository, not for clubs requesting
 - [SETUP.md](SETUP.md) — local toolchain, AWS accounts, CI/CD
 - [sync.md](sync.md) — scheduled sync jobs, schedules, and flow diagrams
 - [Register CLI](../src/cli/README.md) — wire a consumer queue to the provider event bus
-- [agents/domain.md](agents/domain.md) — how skills consume `CONTEXT.md` and future ADRs
+- [agents/domain.md](agents/domain.md) — how skills consume `CONTEXT.md` and ADRs
+- [adr/](adr/) — standing decisions (SAMS host vs association, ticker stays app-local)
