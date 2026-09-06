@@ -70,9 +70,14 @@ const queue = new sqs.Queue(this, "SamsProviderEvents", {
 queue.addToResourcePolicy(
   new iam.PolicyStatement({
     sid: "AllowSamsProviderDeliveryRole",
-    principals: [new iam.ArnPrincipal("arn:aws:iam::550271577754:role/sp-event-delivery-prod")],
+    principals: [new iam.AccountPrincipal("550271577754")],
     actions: ["sqs:SendMessage"],
     resources: [queue.queueArn],
+    conditions: {
+      ArnEquals: {
+        "aws:PrincipalArn": "arn:aws:iam::550271577754:role/sp-event-delivery-prod",
+      },
+    },
   }),
 );
 ```
@@ -87,16 +92,23 @@ The same policy in JSON (replace the queue ARN with yours):
       "Sid": "AllowSamsProviderDeliveryRole",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::550271577754:role/sp-event-delivery-prod"
+        "AWS": "arn:aws:iam::550271577754:root"
       },
       "Action": "sqs:SendMessage",
-      "Resource": "arn:aws:sqs:eu-central-1:123456789012:your-queue"
+      "Resource": "arn:aws:sqs:eu-central-1:123456789012:your-queue",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::550271577754:role/sp-event-delivery-prod"
+        }
+      }
     }
   ]
 }
 ```
 
 Cross-account delivery uses the provider **execution role** above (`sp-event-delivery-prod` in prod). EventBridge assumes that role when invoking your queue. Granting only `events.amazonaws.com` or the event bus ARN as principal is not sufficient.
+
+Trust the delivery role with an account principal plus `aws:PrincipalArn`, not `ArnPrincipal` of the role. SQS stores role principals as unique IDs (`AROA…`). Recreating `sp-event-delivery-prod` under the same name breaks that form, and CDK will not rewrite an unchanged ARN string.
 
 Default SQS encryption (SSE-SQS) works as-is. If you use a **customer-managed KMS key** on the queue, also grant that key to the delivery role (`kms:Decrypt`, `kms:GenerateDataKey`). Skip a CMK unless you need one.
 

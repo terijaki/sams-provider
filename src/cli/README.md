@@ -14,7 +14,7 @@ Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `sr
 - AWS credentials for that **provider** account (prod for real consumers)
 - `SAMS_API_KEY` is **not** required for register (index-only lookup). Sync jobs still need it in the provider account.
 - Consumer already deployed an SQS queue in `eu-central-1` via **their** CDK. Use the queue ARN from the registration issue (`--queue-arn`).
-- Queue policy allowing the provider **delivery role** (`sp-event-delivery-{env}`) to `sqs:SendMessage`
+- Queue policy allowing the provider **delivery role** (`sp-event-delivery-{env}`) to `sqs:SendMessage`. Use the durable form in the [root README](../../README.md#queue-policy-cdk) (account principal + `aws:PrincipalArn`). An `ArnPrincipal` of the role is stored by SQS as a unique ID and breaks if the role is recreated.
 
 | Provider env | When to use                         | Event bus ARN                                                      |
 | ------------ | ----------------------------------- | ------------------------------------------------------------------ |
