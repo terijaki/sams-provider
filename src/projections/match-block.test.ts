@@ -165,6 +165,38 @@ describe("match-block projection", () => {
     expect(matches[0]?.uuid).toBe("match-complete");
   });
 
+  it("maps venue address fields from SAMS location.address", async () => {
+    const matches = await buildMatchBlockProjection({
+      matches: [
+        samsMatch({
+          uuid: "match-1",
+          location: {
+            uuid: "venue-1",
+            name: "Sports Hall",
+            address: {
+              street: "Musterstraße 1",
+              postcode: "45468",
+              city: "Mülheim an der Ruhr",
+            },
+          },
+        }),
+      ],
+      repos: repos([
+        club({ sportsclubUuid: "club-1", logoS3Key: "sams-logos/club-1.png" }),
+        club({ sportsclubUuid: "club-2", logoS3Key: "sams-logos/club-2.png" }),
+      ]),
+      publicLogoBaseUrl,
+    });
+
+    expect(matches[0]?.location).toEqual({
+      uuid: "venue-1",
+      name: "Sports Hall",
+      street: "Musterstraße 1",
+      postal: "45468",
+      city: "Mülheim an der Ruhr",
+    });
+  });
+
   it("normalizes every match in a multi-match block", async () => {
     const matches = await buildMatchBlockProjection({
       matches: [

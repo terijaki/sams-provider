@@ -33,6 +33,12 @@ export type SamsLeagueMatch = {
   location?: {
     uuid?: string | null;
     name?: string | null;
+    address?: {
+      street?: string | null;
+      postcode?: string | null;
+      city?: string | null;
+      country?: string | null;
+    } | null;
   } | null;
   _embedded?: {
     team1?: SamsMatchTeamSide | null;
@@ -139,9 +145,17 @@ function normalizeLocation(
     return undefined;
   }
   const name = location?.name?.trim();
+  const street = location?.address?.street?.trim();
+  const postal = location?.address?.postcode?.trim();
+  const city = location?.address?.city?.trim();
+  const country = location?.address?.country?.trim();
   return {
     uuid,
     ...(name ? { name } : {}),
+    ...(street ? { street } : {}),
+    ...(postal ? { postal } : {}),
+    ...(city ? { city } : {}),
+    ...(country ? { country } : {}),
   };
 }
 

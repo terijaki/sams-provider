@@ -83,7 +83,7 @@ Every event shares this shape (`SamsEvent`):
 | `leagueUuid`     | string?   | League UUID                                                              |
 | `seasonUuid`     | string?   | Season UUID                                                              |
 | `team1`, `team2` | MatchTeam | Each side: `uuid`, `name`, optional `sportsclubUuid`, optional `logoUrl` |
-| `location`       | object?   | `uuid`, optional `name`                                                  |
+| `location`       | object?   | `uuid`, optional `name`, optional `street`, `postal`, `city`, `country`  |
 | `result`         | object?   | Winner, set/ball points, optional `sets[]` with per-set results          |
 | `hasResult`      | boolean   | Whether a final result exists                                            |
 
