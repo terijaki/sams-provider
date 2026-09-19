@@ -122,6 +122,10 @@ export const matchTeamSideSchema = z.object({
 export const matchLocationSchema = z.object({
   uuid: z.string().min(1),
   name: z.string().min(1).optional(),
+  street: z.string().min(1).optional(),
+  postal: z.string().min(1).optional(),
+  city: z.string().min(1).optional(),
+  country: z.string().min(1).optional(),
 });
 
 export const matchSetResultSchema = z.object({

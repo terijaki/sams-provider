@@ -4,6 +4,8 @@ import {
   leagueRankingUpdatedPayloadSchema,
   matchBlockUpdatedPayloadSchema,
   clubMatchSchedulePayloadSchema,
+  matchLocationSchema,
+  matchProjectionSchema,
 } from "./schemas";
 
 describe("event payload schemas", () => {
@@ -82,6 +84,36 @@ describe("event payload schemas", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("accepts match locations with optional address fields", () => {
+    const location = matchLocationSchema.parse({
+      uuid: "venue-1",
+      name: "Sports Hall",
+      street: "Musterstraße 1",
+      postal: "45468",
+      city: "Mülheim an der Ruhr",
+      country: "DE",
+    });
+
+    expect(location).toEqual({
+      uuid: "venue-1",
+      name: "Sports Hall",
+      street: "Musterstraße 1",
+      postal: "45468",
+      city: "Mülheim an der Ruhr",
+      country: "DE",
+    });
+
+    const match = matchProjectionSchema.parse({
+      uuid: "match-1",
+      team1: { uuid: "team-1", name: "Home" },
+      team2: { uuid: "team-2", name: "Away" },
+      location,
+      hasResult: false,
+    });
+
+    expect(match.location?.postal).toBe("45468");
   });
 
   it("accepts normalized club-match-schedule payloads", () => {

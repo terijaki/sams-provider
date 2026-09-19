@@ -60,6 +60,14 @@ export interface MatchLocation {
   uuid: string;
   /** Venue display name, when known. */
   name?: string;
+  /** Street address, when known. */
+  street?: string;
+  /** Postal code, when known (SAMS `address.postcode`). */
+  postal?: string;
+  /** City, when known. */
+  city?: string;
+  /** Country, when known. */
+  country?: string;
 }
 
 /** Result of one set within a completed match. */
