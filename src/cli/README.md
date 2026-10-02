@@ -6,7 +6,7 @@ Public consumers are registered **only** on the production provider account (`55
 
 The CLI resolves the club from the provider index, stores the subscription in SSM, and wires EventBridge to the consumer queue. It does not create queues.
 
-Entry point: `scripts/sams-provider.ts` (`vp run register`). Implementation: `src/cli/register.ts`.
+Entry point: `scripts/sams-provider.ts` (`vp run register`, `vp run full-sync`). Implementation: `src/cli/register.ts`, `src/cli/full-sync.ts`.
 
 ## Prerequisites
 
@@ -72,6 +72,36 @@ CDK does **not** create the clubs/consumers parameters. Registering from the CLI
 Deploy the consumer queue **before** running this CLI. EventBridge `PutTargets` to a cross-account queue fails until that policy exists; the CLI surfaces that as a queue/policy error.
 
 EventBridge does not currently use a target DLQ. A bad queue policy or customer-managed KMS mismatch on the consumer queue often shows up as "queue never receives events," not a Lambda error in the provider account.
+
+## Full sync (manual)
+
+Re-run clubs + teams + match snapshot for every registered club (consumer-facing catch-up):
+
+```sh
+AWS_PROFILE=sams-provider-PRODUCTION vpx bun ./scripts/sams-provider.ts full-sync
+```
+
+Same via package script:
+
+```sh
+AWS_PROFILE=sams-provider-PRODUCTION vp run full-sync
+```
+
+| Flag                       | Default | Meaning                                             |
+| -------------------------- | ------- | --------------------------------------------------- |
+| `--environment` / `-e`     | `prod`  | Provider account env (`prod` or maintainer `dev`)   |
+| `--skip-clubs`             | off     | Skip clubs coordinator (useful after a partial run) |
+| `--skip-teams`             | off     | Skip teams sync                                     |
+| `--skip-match`             | off     | Skip match snapshot                                 |
+| `--clubs-cooldown-seconds` | `90`    | Wait after clubs fan-out before the next invoke     |
+| `--invoke-retries`         | `8`     | Retries on Lambda throttle                          |
+| `--invoke-retry-seconds`   | `20`    | Delay between invoke retries                        |
+
+Example after clubs already ran and teams was rate-limited:
+
+```sh
+AWS_PROFILE=sams-provider-PRODUCTION vpx bun ./scripts/sams-provider.ts full-sync --skip-clubs
+```
 
 ## Failures
 
