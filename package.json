@@ -24,6 +24,7 @@
     "verify": "vp check --fix && vp test --reporter=minimal && vp run pack:events",
     "pack:events": "cd packages/sams-provider-events && vp pack",
     "register": "bun ./scripts/sams-provider.ts register",
+    "full-sync": "bun ./scripts/sams-provider.ts full-sync",
     "cdk:deploy": "cdk deploy --require-approval=never",
     "cdk:deploy:all": "cdk deploy --all --require-approval=never",
     "cdk:deploy:prod": "CDK_ENVIRONMENT=prod cdk deploy --all",
