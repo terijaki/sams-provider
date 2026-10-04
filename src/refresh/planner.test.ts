@@ -4,6 +4,7 @@ import {
   buildMatchBlocks,
   MatchRefreshState,
   planMatchRefresh,
+  rankingDueLeagueDecisions,
   type PlannedMatch,
 } from "./planner";
 
@@ -64,5 +65,28 @@ describe("match refresh planner", () => {
     });
     expect(decision?.state).toBe(MatchRefreshState.settled);
     expect(decision?.shouldRefreshMatches).toBe(false);
+  });
+
+  it("dedupes ranking-due decisions per league and prefers selected blocks", () => {
+    const blocks = buildMatchBlocks([
+      baseMatch,
+      {
+        ...baseMatch,
+        uuid: "m2",
+        locationUuid: "venue-2",
+        sportsclubUuids: ["club-9"],
+      },
+    ]);
+    const decisions = planMatchRefresh({
+      blocks,
+      now: new Date("2026-08-27T14:30:00.000Z"),
+      policy: DEFAULT_MATCH_REFRESH_POLICY,
+    });
+    const preferred = new Set(
+      blocks.filter((block) => block.sportsclubUuids.includes("club-1")).map((block) => block.id),
+    );
+    const rankingDecisions = rankingDueLeagueDecisions(decisions, preferred);
+    expect(rankingDecisions).toHaveLength(1);
+    expect(preferred.has(rankingDecisions[0]?.matchBlockId ?? "")).toBe(true);
   });
 });

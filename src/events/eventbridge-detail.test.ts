@@ -30,4 +30,18 @@ describe("eventBridgeDetail", () => {
     const detail = JSON.parse(eventBridgeDetail(event)) as Record<string, unknown>;
     expect(detail.clubUuids).toBeUndefined();
   });
+
+  it("merges additional club UUIDs into ranking routing metadata", () => {
+    const fixture = contractPayloadFixtures[SamsEventType.leagueRankingUpdated];
+    const event = createEventEnvelope({
+      type: SamsEventType.leagueRankingUpdated,
+      payload: {
+        ...fixture,
+        entries: fixture.entries.map(({ sportsclubUuid: _ignored, ...entry }) => entry),
+      },
+      sourceSyncId: "sync-1",
+    });
+    const detail = JSON.parse(eventBridgeDetail(event, ["club-1"])) as { clubUuids?: string[] };
+    expect(detail.clubUuids).toEqual(["club-1"]);
+  });
 });

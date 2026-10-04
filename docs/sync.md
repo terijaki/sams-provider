@@ -90,23 +90,33 @@ On a fresh DynamoDB table with no associations:
 
 The same `match-refresh` Lambda runs two modes:
 
-| Mode       | Schedule            | Behavior                                                                                         |
-| ---------- | ------------------- | ------------------------------------------------------------------------------------------------ |
-| `adaptive` | Every 5 minutes     | Polls only match blocks that are in the live window. Rankings ride along with those blocks.      |
-| `snapshot` | Wednesday 04:00 UTC | Refetches the current-season schedule for every registered club and each related league ranking. |
+| Mode       | Schedule            | Behavior                                                                                                                                                                                 |
+| ---------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adaptive` | Every 5 minutes     | Polls registered-club match blocks in the live window. Rankings poll when **any** match in a registered club’s league is in a ranking-eligible window (including other teams’ kickoffs). |
+| `snapshot` | Wednesday 04:00 UTC | Refetches club schedules, expands each related league via `for-league`, and publishes rankings for those leagues.                                                                        |
 
 Snapshot payload is `{ "mode": "snapshot" }`. The 5-minute rule sends a normal scheduled event (treated as adaptive). Newly registered clubs receive a full Spielplan and Tabelle on the next Wednesday snapshot without emptying the matches table.
 
+### Rankings-only league watch
+
+Adaptive refresh stores league-wide **schedule list** rows (`getAllLeagueMatches` with `for-league`) so the planner knows other teams’ kickoffs. Those rows drive ranking polls only:
+
+- Detail refresh (`getLeagueMatchByUuid`) and `matchBlockUpdated` run only for blocks that include a registered club.
+- `leagueRankingUpdated` is emitted once per due league when any block in that league is ranking-due (active / sequential / recently finished), even after the registered club’s own block has settled.
+- Club Spielplan events still include only matches involving the registered club.
+- League schedules are ingested on snapshot/bootstrap and refreshed for hot leagues when missing or older than ~12 hours (`sync` meta job `league-schedule-{leagueUuid}`).
+
 ## Sync meta job keys
 
-| Job key                   | Lambda                            |
-| ------------------------- | --------------------------------- |
-| `associations`            | `associations-sync`               |
-| `clubs-coordinator`       | `clubs-sync-coordinator`          |
-| `clubs-{associationUuid}` | `clubs-sync-worker`               |
-| `teams`                   | `teams-sync`                      |
-| `match-refresh`           | `match-refresh` (adaptive)        |
-| `match-snapshot`          | `match-refresh` (weekly snapshot) |
+| Job key                        | Lambda                            |
+| ------------------------------ | --------------------------------- |
+| `associations`                 | `associations-sync`               |
+| `clubs-coordinator`            | `clubs-sync-coordinator`          |
+| `clubs-{associationUuid}`      | `clubs-sync-worker`               |
+| `teams`                        | `teams-sync`                      |
+| `match-refresh`                | `match-refresh` (adaptive)        |
+| `match-snapshot`               | `match-refresh` (weekly snapshot) |
+| `league-schedule-{leagueUuid}` | `match-refresh` (league list age) |
 
 ## Code map
 
