@@ -1,5 +1,5 @@
 import { PutEventsCommand, EventBridgeClient } from "@aws-sdk/client-eventbridge";
-import type { DomainEventPublisher } from "./publisher";
+import { asPublishBatchItem, type DomainEventPublisher, type PublishBatchItem } from "./publisher";
 import { eventBridgeDetail } from "./eventbridge-detail";
 import { EVENT_SOURCE, type SamsEvent } from "./schemas";
 
@@ -9,21 +9,22 @@ export class EventBridgePublisher implements DomainEventPublisher {
     private readonly eventBusName: string,
   ) {}
 
-  async publish(events: SamsEvent[]): Promise<void> {
-    if (events.length === 0) {
+  async publish(items: Array<SamsEvent | PublishBatchItem>): Promise<void> {
+    if (items.length === 0) {
       return;
     }
 
+    const batch = items.map(asPublishBatchItem);
     const chunkSize = 10;
-    for (let index = 0; index < events.length; index += chunkSize) {
-      const chunk = events.slice(index, index + chunkSize);
+    for (let index = 0; index < batch.length; index += chunkSize) {
+      const chunk = batch.slice(index, index + chunkSize);
       const result = await this.client.send(
         new PutEventsCommand({
-          Entries: chunk.map((event) => ({
+          Entries: chunk.map(({ event, additionalClubUuids }) => ({
             EventBusName: this.eventBusName,
             Source: EVENT_SOURCE,
             DetailType: event.type,
-            Detail: eventBridgeDetail(event),
+            Detail: eventBridgeDetail(event, additionalClubUuids),
             Time: new Date(event.occurredAt),
           })),
         }),

@@ -111,6 +111,30 @@ export function dueRefreshDecisions(decisions: RefreshDecision[]): RefreshDecisi
   );
 }
 
+/** One representative ranking-due decision per league. */
+export function rankingDueLeagueDecisions(
+  decisions: RefreshDecision[],
+  preferMatchBlockIds: ReadonlySet<string> = new Set(),
+): RefreshDecision[] {
+  const byLeague = new Map<string, RefreshDecision>();
+  for (const decision of decisions) {
+    if (!decision.shouldRefreshRankings) {
+      continue;
+    }
+    const existing = byLeague.get(decision.leagueUuid);
+    if (!existing) {
+      byLeague.set(decision.leagueUuid, decision);
+      continue;
+    }
+    const decisionPreferred = preferMatchBlockIds.has(decision.matchBlockId);
+    const existingPreferred = preferMatchBlockIds.has(existing.matchBlockId);
+    if (decisionPreferred && !existingPreferred) {
+      byLeague.set(decision.leagueUuid, decision);
+    }
+  }
+  return [...byLeague.values()];
+}
+
 function decideBlock(args: {
   block: MatchBlock;
   now: dayjs.Dayjs;

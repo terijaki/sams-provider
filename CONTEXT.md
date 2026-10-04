@@ -91,11 +91,11 @@ Matches that share league, date, venue, and listed start time and are played seq
 _Avoid_: match day, round, fixed poll window
 
 **Adaptive match refresh**:
-Refreshing match blocks (and related rankings) by schedule and match state, not on a fixed interval.
+Refreshing registered-club match blocks by schedule and match state, and polling league rankings while any match in those leagues is in a live window — not on a fixed interval.
 _Avoid_: 5-minute cache, cron poll
 
 **Match snapshot**:
-A weekly full reload of current-season schedules and league rankings for registered clubs, independent of the live window.
+A weekly full reload of current-season schedules (including league-wide fixtures for ranking timing) and league rankings for registered clubs, independent of the live window.
 _Avoid_: emptying the matches table to force bootstrap
 
 ## Issue tracking

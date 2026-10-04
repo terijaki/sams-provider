@@ -17,6 +17,11 @@ export class SamsSyncMetaRepository {
     return SamsSyncMetaEntity.build(EntityRepository);
   }
 
+  async get(job: string): Promise<SamsSyncMetaInput | null> {
+    const { Item } = await this.entityRepository().get({ job });
+    return Item ? parseWithSchema(samsSyncMetaSchema, Item, "Failed to parse sync metadata") : null;
+  }
+
   async put(input: {
     job: string;
     status: "success" | "failure";

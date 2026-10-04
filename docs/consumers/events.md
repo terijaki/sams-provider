@@ -184,7 +184,7 @@ Every event shares this shape (`SamsEvent`):
 
 ### `sams.match-block.updated`
 
-**When:** Adaptive match refresh decides a **match block** is due. A block groups matches that share league, date, and venue and are played sequentially.
+**When:** Adaptive match refresh decides a **match block** involving a registered club is due. A block groups matches that share league, date, and venue and are played sequentially. Other teams’ games in the same league may be used for ranking timing but do not produce match-block events for your club.
 
 **Payload:**
 
@@ -206,7 +206,7 @@ Every event shares this shape (`SamsEvent`):
 
 ### `sams.league-ranking.updated`
 
-**When:** Emitted alongside match-block refresh when rankings for that league should update, and on the weekly snapshot for every league a registered club plays in.
+**When:** Emitted when rankings for a league should update — while any match in a registered club’s league is in a live ranking window (including other teams’ kickoffs after your club has finished), and on the weekly snapshot for every league a registered club plays in.
 
 **Payload:**
 
