@@ -152,6 +152,8 @@ export const matchProjectionSchema = z.object({
   seasonUuid: z.string().min(1).optional(),
   team1: matchTeamSideSchema,
   team2: matchTeamSideSchema,
+  /** Hosting team UUID (match host / Ausrichter). Distinct from team1/team2. */
+  host: z.string().min(1).nullable().optional(),
   location: matchLocationSchema.optional(),
   result: matchResultSchema.optional(),
   hasResult: z.boolean(),

@@ -30,6 +30,8 @@ export type SamsLeagueMatch = {
   time?: string | null;
   leagueUuid?: string | null;
   seasonUuid?: string | null;
+  /** Hosting team UUID (match host / Ausrichter), when SAMS provides it. */
+  host?: string | null;
   location?: {
     uuid?: string | null;
     name?: string | null;
@@ -104,6 +106,7 @@ export function toMatchProjection(args: {
     ...(args.match.seasonUuid ? { seasonUuid: args.match.seasonUuid } : {}),
     team1,
     team2,
+    ...(args.match.host !== undefined ? { host: args.match.host } : {}),
     ...(location ? { location } : {}),
     ...(hasResult ? { result: normalizeMatchResult(args.match.results) } : {}),
     hasResult,

@@ -107,13 +107,34 @@ describe("event payload schemas", () => {
 
     const match = matchProjectionSchema.parse({
       uuid: "match-1",
-      team1: { uuid: "team-1", name: "Home" },
-      team2: { uuid: "team-2", name: "Away" },
+      team1: { uuid: "team-1", name: "Side A" },
+      team2: { uuid: "team-2", name: "Side B" },
+      host: "team-host",
       location,
       hasResult: false,
     });
 
     expect(match.location?.postal).toBe("45468");
+    expect(match.host).toBe("team-host");
+  });
+
+  it("accepts null host and omits when absent", () => {
+    const withNull = matchProjectionSchema.parse({
+      uuid: "match-1",
+      team1: { uuid: "team-1", name: "Side A" },
+      team2: { uuid: "team-2", name: "Side B" },
+      host: null,
+      hasResult: false,
+    });
+    expect(withNull.host).toBeNull();
+
+    const without = matchProjectionSchema.parse({
+      uuid: "match-2",
+      team1: { uuid: "team-1", name: "Side A" },
+      team2: { uuid: "team-2", name: "Side B" },
+      hasResult: false,
+    });
+    expect(without.host).toBeUndefined();
   });
 
   it("accepts normalized club-match-schedule payloads", () => {

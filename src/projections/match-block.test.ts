@@ -221,4 +221,66 @@ describe("match-block projection", () => {
     expect(matches[1]?.hasResult).toBe(true);
     expect(matches[1]?.result?.winner).toBe("team-2");
   });
+
+  it("passes through host and keeps it stable when team1 rotates in a 3-match block", async () => {
+    const hostTeamUuid = "team-host";
+    const matches = await buildMatchBlockProjection({
+      matches: [
+        samsMatch({
+          uuid: "match-1",
+          time: "10:00",
+          host: hostTeamUuid,
+          _embedded: {
+            team1: { uuid: "team-a", name: "Team A", sportsclubUuid: "club-a" },
+            team2: { uuid: "team-b", name: "Team B", sportsclubUuid: "club-b" },
+          },
+        }),
+        samsMatch({
+          uuid: "match-2",
+          time: "12:00",
+          host: hostTeamUuid,
+          _embedded: {
+            team1: { uuid: "team-b", name: "Team B", sportsclubUuid: "club-b" },
+            team2: { uuid: hostTeamUuid, name: "Host Team", sportsclubUuid: "club-host" },
+          },
+        }),
+        samsMatch({
+          uuid: "match-3",
+          time: "14:00",
+          host: hostTeamUuid,
+          _embedded: {
+            team1: { uuid: hostTeamUuid, name: "Host Team", sportsclubUuid: "club-host" },
+            team2: { uuid: "team-a", name: "Team A", sportsclubUuid: "club-a" },
+          },
+        }),
+      ],
+      repos: repos([
+        club({ sportsclubUuid: "club-a" }),
+        club({ sportsclubUuid: "club-b" }),
+        club({ sportsclubUuid: "club-host" }),
+      ]),
+      publicLogoBaseUrl,
+    });
+
+    expect(matches).toHaveLength(3);
+    expect(matches.map((match) => match.host)).toEqual([hostTeamUuid, hostTeamUuid, hostTeamUuid]);
+    expect(matches.map((match) => match.team1.uuid)).toEqual(["team-a", "team-b", hostTeamUuid]);
+  });
+
+  it("emits null host when SAMS sends null and omits host when absent", async () => {
+    const matches = await buildMatchBlockProjection({
+      matches: [
+        samsMatch({ uuid: "match-null-host", host: null }),
+        samsMatch({ uuid: "match-no-host" }),
+      ],
+      repos: repos([club({ sportsclubUuid: "club-1" }), club({ sportsclubUuid: "club-2" })]),
+      publicLogoBaseUrl,
+    });
+
+    expect(matches).toHaveLength(2);
+    expect(matches[0]?.host).toBeNull();
+    expect(Object.hasOwn(matches[0] ?? {}, "host")).toBe(true);
+    expect(matches[1]?.host).toBeUndefined();
+    expect(Object.hasOwn(matches[1] ?? {}, "host")).toBe(false);
+  });
 });

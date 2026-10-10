@@ -41,7 +41,7 @@
     },
     "packages/sams-provider-events": {
       "name": "sams-provider-events",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "zod": "^4.6.5",
       },

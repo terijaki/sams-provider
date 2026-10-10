@@ -75,17 +75,18 @@ Every event shares this shape (`SamsEvent`):
 
 ### Match
 
-| Field            | Type      | Description                                                              |
-| ---------------- | --------- | ------------------------------------------------------------------------ |
-| `uuid`           | string    | Match UUID                                                               |
-| `date`           | string?   | `YYYY-MM-DD`                                                             |
-| `time`           | string?   | Scheduled start time                                                     |
-| `leagueUuid`     | string?   | League UUID                                                              |
-| `seasonUuid`     | string?   | Season UUID                                                              |
-| `team1`, `team2` | MatchTeam | Each side: `uuid`, `name`, optional `sportsclubUuid`, optional `logoUrl` |
-| `location`       | object?   | `uuid`, optional `name`, optional `street`, `postal`, `city`, `country`  |
-| `result`         | object?   | Winner, set/ball points, optional `sets[]` with per-set results          |
-| `hasResult`      | boolean   | Whether a final result exists                                            |
+| Field            | Type           | Description                                                                                                   |
+| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `uuid`           | string         | Match UUID                                                                                                    |
+| `date`           | string?        | `YYYY-MM-DD`                                                                                                  |
+| `time`           | string?        | Scheduled start time                                                                                          |
+| `leagueUuid`     | string?        | League UUID                                                                                                   |
+| `seasonUuid`     | string?        | Season UUID                                                                                                   |
+| `team1`, `team2` | MatchTeam      | First- and second-listed sides: `uuid`, `name`, optional `sportsclubUuid`, optional `logoUrl` (not home/away) |
+| `host`           | string \| null | Hosting team UUID (match host / Ausrichter), when SAMS provides it; distinct from `team1`/`team2`             |
+| `location`       | object?        | `uuid`, optional `name`, optional `street`, `postal`, `city`, `country`                                       |
+| `result`         | object?        | Winner, set/ball points, optional `sets[]` with per-set results                                               |
+| `hasResult`      | boolean        | Whether a final result exists                                                                                 |
 
 ---
 
