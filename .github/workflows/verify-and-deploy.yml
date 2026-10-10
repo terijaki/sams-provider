@@ -111,7 +111,7 @@ jobs:
         run: vp exec cdk diff --all
 
       - name: CDK Deploy
-        run: vp exec cdk deploy --require-approval never --all --outputs-file cdk-outputs.json
+        run: vp exec cdk deploy --require-approval never --all --concurrency 4 --outputs-file cdk-outputs.json
 
       - name: CDK Diff shared stacks
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -123,7 +123,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CDK_STACK_GROUP: shared
-        run: vp exec cdk deploy --require-approval never --all
+        run: vp exec cdk deploy --require-approval never --all --concurrency 4
 
       - name: Add deployment summary
         run: |

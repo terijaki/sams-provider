@@ -53,7 +53,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: CDK Destroy branch stacks
-        run: vp exec cdk destroy --all --force
+        run: vp exec cdk destroy --all --force --concurrency 4
 
       - name: Add destroy summary
         run: |
