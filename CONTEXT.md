@@ -48,6 +48,10 @@ _Avoid_: club
 A scheduled or completed game between two teams.
 _Avoid_: ticker
 
+**Match host**:
+The hosting team UUID on a Match (SAMS field `host` / Ausrichter). Distinct from `team1`/`team2`, which are listed sides only, not home/away.
+_Avoid_: SAMS host, home team, team1 as home
+
 **Ticker**:
 Live play-by-play for a match. It is not a provider projection; consumers obtain it themselves.
 _Avoid_: match event, ticker event, provider ticker

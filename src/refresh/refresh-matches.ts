@@ -46,6 +46,7 @@ export type MatchRefreshSams = LeagueRankingSams & {
         time?: string | null;
         leagueUuid?: string | null;
         seasonUuid?: string | null;
+        host?: string | null;
         location?: { uuid?: string | null } | null;
         _embedded?: {
           team1?: { sportsclubUuid?: string | null } | null;
@@ -91,6 +92,7 @@ type LeagueMatchListItem = {
   time?: string | null;
   leagueUuid?: string | null;
   seasonUuid?: string | null;
+  host?: string | null;
   location?: { uuid?: string | null } | null;
   _embedded?: {
     team1?: { sportsclubUuid?: string | null } | null;

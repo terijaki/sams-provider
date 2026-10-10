@@ -110,10 +110,15 @@ export interface Match {
   leagueUuid?: string;
   /** Season UUID, when known. */
   seasonUuid?: string;
-  /** Home or first-listed team. */
+  /** First-listed match side (not a home/away indicator). */
   team1: MatchTeam;
-  /** Away or second-listed team. */
+  /** Second-listed match side (not a home/away indicator). */
   team2: MatchTeam;
+  /**
+   * Hosting team UUID (match host / Ausrichter), when SAMS provides it.
+   * Distinct from team1/team2; not the SAMS HTTP origin.
+   */
+  host?: string | null;
   /** Venue, when known. */
   location?: MatchLocation;
   /** Final or partial result, when available. */
