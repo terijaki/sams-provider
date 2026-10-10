@@ -87,7 +87,7 @@ vp run verify       # Full quality gate
 
 varlock run -- vp exec cdk synth
 varlock run -- vp exec cdk diff --all
-varlock run -- vp exec cdk deploy --all
+varlock run -- vp exec cdk deploy --all --concurrency 4
 
 varlock run -- vp run cdk:deploy:shared       # OIDC + budget (dev account)
 varlock run -- vp run cdk:deploy:shared:prod  # OIDC + budget (prod account)

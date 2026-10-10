@@ -16,7 +16,7 @@ Instructions for AI coding agents working in this repository.
 - **Lint / format / typecheck:** `vp check` / `vp check --fix`
 - **Tests:** `vp test`
 - **Full gate:** `vp run verify`
-- **CDK:** `varlock run -- vp exec cdk synth` and `varlock run -- vp exec cdk deploy --all`
+- **CDK:** `varlock run -- vp exec cdk synth` and `varlock run -- vp exec cdk deploy --all --concurrency 4` (independent stacks in parallel; app has at most five)
 - **Shared account stacks (OIDC + budget, not in `--all`):** local `varlock run -- vp run cdk:deploy:shared` for the **dev** account; prod CI deploys them after merge to `main`.
 - **Register a consumer club (prod by default):** `varlock run -- vp run register -- --club "Club Name" --account 123456789012`. Use `--environment dev` only for internal tests. See `src/cli/README.md`.
 
