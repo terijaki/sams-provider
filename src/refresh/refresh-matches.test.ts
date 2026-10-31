@@ -310,6 +310,44 @@ describe("refreshMatchesAndRankings", () => {
     expect(schedule.payload.matches).toHaveLength(1);
   });
 
+  it("includes full-season fixtures in snapshot schedule events", async () => {
+    const earlySeasonMatch = storedMatch({
+      uuid: "match-early",
+      date: "2026-07-01",
+      time: "18:00",
+      rawJson: JSON.stringify({
+        ...rawMatch,
+        uuid: "match-early",
+        date: "2026-07-01",
+        time: "18:00",
+      }),
+    });
+    const publisher = new InMemoryEventPublisher();
+    await refreshMatchesAndRankings({
+      sams: samsClient({ listContent: [rawMatch, otherTeamMatch] }),
+      repos: memoryRepos([earlySeasonMatch, storedMatch()]),
+      publisher,
+      clubs,
+      policy: DEFAULT_MATCH_REFRESH_POLICY,
+      publicLogoBaseUrl: "https://cdn.example",
+      sourceSyncId: "sync-1",
+      mode: "snapshot",
+      now,
+      sleep: async () => {},
+    });
+
+    const schedule = publisher.published.find(
+      (event) => event.type === SamsEventType.clubMatchScheduleUpdated,
+    );
+    if (!schedule || schedule.type !== SamsEventType.clubMatchScheduleUpdated) {
+      throw new Error("expected schedule event");
+    }
+    expect(schedule.payload.matches.map((match) => match.uuid).sort()).toEqual([
+      "match-1",
+      "match-early",
+    ]);
+  });
+
   it("returns zeros when no clubs are registered", async () => {
     const publisher = new InMemoryEventPublisher();
     const result = await refreshMatchesAndRankings({

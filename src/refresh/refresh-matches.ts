@@ -17,7 +17,10 @@ import {
   type LeagueRankingSams,
   type SamsLeagueRankingEntry,
 } from "../projections/league-ranking";
-import { buildClubMatchScheduleEvents } from "../projections/club-match-schedule";
+import {
+  buildClubMatchScheduleEvents,
+  type ClubScheduleWindowMode,
+} from "../projections/club-match-schedule";
 import { buildMatchBlockProjection, type SamsLeagueMatch } from "../projections/match-block";
 import { unwrapSamsResult } from "../sams/result";
 import type { SamsMatchInput, SamsSyncMetaInput } from "@lib/db/schemas";
@@ -393,6 +396,7 @@ async function buildSnapshotEvents(args: {
   const scheduleEvents = await scheduleEventsForClubs({
     ...args,
     clubUuids,
+    scheduleWindowMode: "fullSeason",
   });
   for (const event of scheduleEvents) {
     publishBatch.push({ event });
@@ -407,6 +411,7 @@ async function scheduleEventsForClubs(args: {
   sourceSyncId: string;
   sams: MatchRefreshSams;
   clubUuids: Iterable<string>;
+  scheduleWindowMode?: ClubScheduleWindowMode;
   now?: Date;
 }): Promise<SamsEvent[]> {
   const season = await resolveCurrentSeason(args);
@@ -422,6 +427,7 @@ async function scheduleEventsForClubs(args: {
     season,
     sourceSyncId: args.sourceSyncId,
     cachedAt: new Date().toISOString(),
+    windowMode: args.scheduleWindowMode,
     now: args.now,
   });
 }
