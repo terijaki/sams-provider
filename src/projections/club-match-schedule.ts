@@ -10,6 +10,8 @@ import type { ClubMatchScheduleProjection, MatchProjection } from "./types";
 const SCHEDULE_LOOKBACK_DAYS = 14;
 const SCHEDULE_LOOKAHEAD_DAYS = 365;
 
+export type ClubScheduleWindowMode = "rolling" | "fullSeason";
+
 export function isClubScheduleWindow(args: {
   match: { date?: string; time?: string };
   now?: Date;
@@ -29,12 +31,16 @@ export function selectStoredClubScheduleMatches(args: {
   storedMatches: SamsMatchInput[];
   clubUuid: string;
   seasonUuid: string;
+  windowMode?: ClubScheduleWindowMode;
   now?: Date;
 }): SamsMatchInput[] {
+  const windowMode = args.windowMode ?? "rolling";
   return args.storedMatches
     .filter((match) => match.sportsclubUuids.includes(args.clubUuid))
     .filter((match) => !match.seasonUuid || match.seasonUuid === args.seasonUuid)
-    .filter((match) => isClubScheduleWindow({ match, now: args.now }))
+    .filter((match) =>
+      windowMode === "fullSeason" ? true : isClubScheduleWindow({ match, now: args.now }),
+    )
     .sort(compareStoredMatches);
 }
 
@@ -73,6 +79,7 @@ export async function buildClubMatchScheduleEvents(args: {
   season: { uuid: string; name: string; current: boolean };
   sourceSyncId: string;
   cachedAt: string;
+  windowMode?: ClubScheduleWindowMode;
   now?: Date;
 }): Promise<SamsEvent[]> {
   const storedClubs = await args.repos.clubs.listAll();
@@ -91,6 +98,7 @@ export async function buildClubMatchScheduleEvents(args: {
       storedMatches: args.storedMatches,
       clubUuid,
       seasonUuid: args.season.uuid,
+      windowMode: args.windowMode,
       now: args.now,
     });
     const matches = normalizeStoredMatches({

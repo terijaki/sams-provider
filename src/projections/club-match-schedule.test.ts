@@ -128,6 +128,35 @@ describe("club-match-schedule projection", () => {
     ).toBe(true);
   });
 
+  it("includes every current-season match when window mode is fullSeason", () => {
+    const matches = selectStoredClubScheduleMatches({
+      storedMatches: [
+        storedMatch({
+          uuid: "match-future",
+          date: "2027-06-01",
+          time: "18:00",
+          seasonUuid: "season-1",
+          sportsclubUuids: ["club-1"],
+          rawJson: "{}",
+        }),
+        storedMatch({
+          uuid: "match-old",
+          date: "2026-07-01",
+          time: "18:00",
+          seasonUuid: "season-1",
+          sportsclubUuids: ["club-1"],
+          rawJson: "{}",
+        }),
+      ],
+      clubUuid: "club-1",
+      seasonUuid: "season-1",
+      windowMode: "fullSeason",
+      now,
+    });
+
+    expect(matches.map((match) => match.uuid)).toEqual(["match-old", "match-future"]);
+  });
+
   it("builds publishable club-match-schedule events for registered clubs", async () => {
     const rawMatch = {
       uuid: "match-1",

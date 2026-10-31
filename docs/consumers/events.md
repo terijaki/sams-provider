@@ -168,16 +168,16 @@ Every event shares this shape (`SamsEvent`):
 
 **Payload:**
 
-| Field         | Type         | Description                               |
-| ------------- | ------------ | ----------------------------------------- |
-| `club`        | Club         | Registered club                           |
-| `season`      | Season       | Season context                            |
-| `matches`     | Match[]      | Fixtures in the rolling window            |
-| `projectedAt` | ISO datetime | When the projection was built             |
-| `cachedAt`    | ISO datetime | When underlying match data was cached     |
-| `isStale`     | boolean      | `true` when refresh could not run in time |
+| Field         | Type         | Description                                                                                  |
+| ------------- | ------------ | -------------------------------------------------------------------------------------------- |
+| `club`        | Club         | Registered club                                                                              |
+| `season`      | Season       | Season context                                                                               |
+| `matches`     | Match[]      | Fixtures in the rolling window, or full current season on weekly snapshot / manual full sync |
+| `projectedAt` | ISO datetime | When the projection was built                                                                |
+| `cachedAt`    | ISO datetime | When underlying match data was cached                                                        |
+| `isStale`     | boolean      | `true` when refresh could not run in time                                                    |
 
-**Window:** Matches from **14 days ago** through **365 days ahead**.
+**Window:** Adaptive refresh emits matches from **14 days ago** through **365 days ahead**. The weekly snapshot and manual `full-sync` emit **all stored fixtures for the current season** for each registered club.
 
 **Use:** Replace or merge your club schedule view. Respect `isStale` in UI if you show freshness.
 
